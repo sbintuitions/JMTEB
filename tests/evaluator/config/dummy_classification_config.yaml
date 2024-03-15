@@ -1,0 +1,24 @@
+tasks:
+  - dataset_name: dummy_classification
+    task_type: classification
+    # head -n 50 datasets/marc_ja-v1.1/train-v1.1.json > tests/test_data/dummy_classification/train.jsonl
+    train_data: ./tests/test_data/${.dataset_name}/train.jsonl
+    # head -n 10 datasets/marc_ja-v1.1/valid-v1.1.json > tests/test_data/dummy_classification/dev.jsonl
+    dev_data: ./tests/test_data/${.dataset_name}/dev.jsonl
+    use_train: true
+    use_dev: true
+    k: 2
+    classifier: knn
+
+env:
+    dotenv_path: ".env"
+
+model:
+    # Replace it with ours if we have a HF repo available
+    model_name_or_path: cl-nagoya/sup-simcse-ja-base
+
+
+tokenizer:
+    do_lower_case: false
+
+output_dir: ./results

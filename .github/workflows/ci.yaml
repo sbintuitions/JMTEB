@@ -1,0 +1,86 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      no-cache:
+        description: "Run tests without cache"
+        default: false
+        required: false
+        type: boolean
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VERSION: "3.9"
+      NO_CACHE: ${{ github.event.inputs.no-cache || 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: |
+          pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "poetry"
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Download unidic artifacts
+        run: |
+          if [ ! -f "$(poetry env info -p)/lib/python$PYTHON_VERSION/site-packages/unidic/dicdir/version" ]; then
+            poetry run python -m unidic download
+          fi
+
+      - name: Run tests
+        run: |
+          poetry run pytest -v -s ./tests
+
+  lint_check:
+    runs-on: ubuntu-latest
+    env:
+      PYTHON_VERSION: "3.9"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Poetry
+        run: |
+          pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "poetry"
+
+      - name: Install dev dependencies
+        run: |
+          poetry install --only dev
+
+      - name: Check black and isort and flake8
+        run: |
+          poetry run black --check --diff .
+          poetry run isort --check-only --diff .
+          poetry run flake8 .
+
+  markdown_lint_check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: markdownlint-cli
+      uses: nosborn/github-action-markdown-cli@v3.3.0
+      with:
+        files: README.md
+        config_file: .markdownlint.yaml
