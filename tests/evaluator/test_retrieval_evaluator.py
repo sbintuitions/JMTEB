@@ -9,7 +9,6 @@ from src.evaluators.retrieval.data import (
     JsonlRetrievalDocDataset,
     JsonlRetrievalQueryDataset,
 )
-from tests.evaluator.fixture import embedder  # noqa: F401
 
 
 class DummyDocDataset(RetrievalDocDataset):
