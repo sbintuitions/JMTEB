@@ -3,8 +3,8 @@ from __future__ import annotations
 from os import PathLike
 from pathlib import Path
 
-from src.embedders.base import TextEmbedder
-from src.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.embedders.base import TextEmbedder
+from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
 from .data import PairClassificationDataset
 from .threshold_accuracy import ThresholdAccuracyMetric

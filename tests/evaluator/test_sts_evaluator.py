@@ -1,6 +1,5 @@
-from src.evaluators.sts import STSDataset, STSEvaluator, STSInstance
-from src.evaluators.sts.data import JsonlSTSDataset
-from tests.evaluator.fixture import embedder  # noqa: F401
+from jmteb.evaluators.sts import STSDataset, STSEvaluator, STSInstance
+from jmteb.evaluators.sts.data import JsonlSTSDataset
 
 
 class DummySTSDataset(STSDataset):

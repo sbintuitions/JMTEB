@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from src.embedders.base import TextEmbedder
+from jmteb.embedders.base import TextEmbedder
 
 
 class SentenceBertEmbedder(TextEmbedder):

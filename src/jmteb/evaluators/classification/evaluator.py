@@ -6,8 +6,8 @@ from pathlib import Path
 from loguru import logger
 from sklearn.metrics import accuracy_score, f1_score
 
-from src.embedders.base import TextEmbedder
-from src.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.embedders.base import TextEmbedder
+from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
 from .classifiers import Classifier, KnnClassifier, LogRegClassifier
 from .data import ClassificationDataset
