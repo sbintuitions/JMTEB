@@ -1,11 +1,11 @@
-from src.evaluators.classification import (
+from jmteb.evaluators.classification import (
     ClassificationDataset,
     ClassificationEvaluator,
     ClassificationInstance,
     KnnClassifier,
     LogRegClassifier,
 )
-from src.evaluators.classification.data import JsonlClassificationDataset
+from jmteb.evaluators.classification.data import JsonlClassificationDataset
 
 
 class DummyClassificationDataset(ClassificationDataset):

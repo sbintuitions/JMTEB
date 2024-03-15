@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic.dataclasses import dataclass
 
-from src.embedders import TextEmbedder
+from jmteb.embedders import TextEmbedder
 
 
 @dataclass

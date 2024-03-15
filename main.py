@@ -6,9 +6,9 @@ from pathlib import Path
 from jsonargparse import ActionConfigFile, ArgumentParser
 from loguru import logger
 
-from src.embedders import TextEmbedder
-from src.evaluators import EmbeddingEvaluator
-from src.utils.score_recorder import JsonScoreRecorder
+from jmteb.embedders import TextEmbedder
+from jmteb.evaluators import EmbeddingEvaluator
+from jmteb.utils.score_recorder import JsonScoreRecorder
 
 
 def main(

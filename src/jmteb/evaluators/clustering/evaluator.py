@@ -13,8 +13,8 @@ from sklearn.cluster import (
 )
 from sklearn.metrics import homogeneity_completeness_v_measure
 
-from src.embedders.base import TextEmbedder
-from src.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.embedders.base import TextEmbedder
+from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
 from .data import ClusteringDataset
 

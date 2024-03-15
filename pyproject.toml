@@ -10,7 +10,7 @@ authors = [
 ]
 description = "The evaluation scripts for JMTEB (Japanese Massive Text Embedding Benchmark)"
 name = "JMTEB"
-packages = [{from = ".", include = "src"}]
+packages = [{from = "src", include = "jmteb"}]
 readme = "README.md"
 version = "1.0.0"
 

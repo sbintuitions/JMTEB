@@ -1,5 +1,5 @@
-from src.evaluators.sts import STSDataset, STSEvaluator, STSInstance
-from src.evaluators.sts.data import JsonlSTSDataset
+from jmteb.evaluators.sts import STSDataset, STSEvaluator, STSInstance
+from jmteb.evaluators.sts.data import JsonlSTSDataset
 
 
 class DummySTSDataset(STSDataset):

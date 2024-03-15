@@ -1,6 +1,6 @@
 import pytest
 
-from src.embedders.sbert_embedder import SentenceBertEmbedder
+from jmteb.embedders.sbert_embedder import SentenceBertEmbedder
 
 
 def pytest_addoption(parser: pytest.Parser):
