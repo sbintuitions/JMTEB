@@ -4,7 +4,6 @@ from src.evaluators.clustering import (
     ClusteringInstance,
 )
 from src.evaluators.clustering.data import JsonlClusteringDataset
-from tests.evaluator.fixture import embedder  # noqa: F401
 
 
 class DummyClusteringDataset(ClusteringDataset):
