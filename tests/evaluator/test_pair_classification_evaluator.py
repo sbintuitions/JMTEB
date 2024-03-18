@@ -4,7 +4,6 @@ from src.evaluators.pair_classification import (
     PairClassificationInstance,
 )
 from src.evaluators.pair_classification.data import JsonlPairClassificationDataset
-from tests.evaluator.fixture import embedder  # noqa: F401
 
 
 class DummyBinaryDataset(PairClassificationDataset):

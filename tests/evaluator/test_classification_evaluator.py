@@ -6,7 +6,6 @@ from src.evaluators.classification import (
     LogRegClassifier,
 )
 from src.evaluators.classification.data import JsonlClassificationDataset
-from tests.evaluator.fixture import embedder  # noqa: F401
 
 
 class DummyClassificationDataset(ClassificationDataset):
