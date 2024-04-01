@@ -44,12 +44,15 @@ def main(
     score_recorder.record_summary()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser(parser_mode="jsonnet")
 
     parser.add_subclass_arguments(TextEmbedder, nested_key="embedder", required=True)
     parser.add_argument(
-        "--evaluators", type=dict[str, EmbeddingEvaluator], enable_path=True, default=str(Path(__file__).parent / "configs" / "jmteb.jsonnet")
+        "--evaluators",
+        type=dict[str, EmbeddingEvaluator],
+        enable_path=True,
+        default=str(Path(__file__).parent / "configs" / "jmteb.jsonnet"),
     )
     parser.add_argument("--config", action=ActionConfigFile, help="Path to the config file.")
     parser.add_argument("--save_dir", type=str, default=None, help="Directory to save the outputs")
