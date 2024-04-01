@@ -1,9 +1,9 @@
-from src.evaluators.pair_classification import (
+from jmteb.evaluators.pair_classification import (
     PairClassificationDataset,
     PairClassificationEvaluator,
     PairClassificationInstance,
 )
-from src.evaluators.pair_classification.data import JsonlPairClassificationDataset
+from jmteb.evaluators.pair_classification.data import JsonlPairClassificationDataset
 
 
 class DummyBinaryDataset(PairClassificationDataset):

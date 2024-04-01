@@ -1,9 +1,9 @@
-from src.evaluators.clustering import (
+from jmteb.evaluators.clustering import (
     ClusteringDataset,
     ClusteringEvaluator,
     ClusteringInstance,
 )
-from src.evaluators.clustering.data import JsonlClusteringDataset
+from jmteb.evaluators.clustering.data import JsonlClusteringDataset
 
 
 class DummyClusteringDataset(ClusteringDataset):

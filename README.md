@@ -16,7 +16,7 @@ poetry run pytest tests
 The following command evaluate the specified model on the all the tasks in JMTEB.
 
 ```bash
-poetry run python main.py \
+poetry run python -m jmteb \
   --embedder SentenceBertEmbedder \
   --embedder.model_name_or_path "<model_name_or_path>" \
   --save_dir "output/<model_name_or_path>"
@@ -26,7 +26,7 @@ By default, the evaluation tasks are read from `src/configs/jmteb.jsonnet`.
 If you want to evaluate the model on a specific task, you can specify the task via `--evaluators` option with the task config.
 
 ```bash
-poetry run python main.py \
+poetry run python -m jmteb \
   --evaluators "src/configs/tasks/jsts.jsonnet" \
   --embedder SentenceBertEmbedder \
   --embedder.model_name_or_path "<model_name_or_path>" \

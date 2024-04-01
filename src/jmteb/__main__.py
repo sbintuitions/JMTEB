@@ -6,9 +6,9 @@ from pathlib import Path
 from jsonargparse import ActionConfigFile, ArgumentParser
 from loguru import logger
 
-from src.embedders import TextEmbedder
-from src.evaluators import EmbeddingEvaluator
-from src.utils.score_recorder import JsonScoreRecorder
+from jmteb.embedders import TextEmbedder
+from jmteb.evaluators import EmbeddingEvaluator
+from jmteb.utils.score_recorder import JsonScoreRecorder
 
 
 def main(
@@ -49,7 +49,10 @@ if __name__ == "__main__":
 
     parser.add_subclass_arguments(TextEmbedder, nested_key="embedder", required=True)
     parser.add_argument(
-        "--evaluators", type=dict[str, EmbeddingEvaluator], enable_path=True, default="src/configs/jmteb.jsonnet"
+        "--evaluators",
+        type=dict[str, EmbeddingEvaluator],
+        enable_path=True,
+        default=str(Path(__file__).parent / "configs" / "jmteb.jsonnet"),
     )
     parser.add_argument("--config", action=ActionConfigFile, help="Path to the config file.")
     parser.add_argument("--save_dir", type=str, default=None, help="Directory to save the outputs")
@@ -66,6 +69,13 @@ if __name__ == "__main__":
                 args.evaluators.pop(key)
 
     args = parser.instantiate_classes(args)
+    if isinstance(args.evaluators, str):
+        raise ValueError(
+            "Evaluators should be a dictionary, not a string.\n"
+            "Perhaps you provided a path to a config file, "
+            "but the path does not exist or the config format is broken.\n"
+            f"Please check {args.evaluators}"
+        )
 
     main(
         text_embedder=args.embedder,
