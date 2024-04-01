@@ -7,7 +7,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
-from src.evaluators import EvaluationResults
+from jmteb.evaluators import EvaluationResults
 
 
 class AbstractScoreRecorder(ABC):

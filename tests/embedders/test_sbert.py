@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.embedders.sbert_embedder import SentenceBertEmbedder
+from jmteb.embedders.sbert_embedder import SentenceBertEmbedder
 
 MODEL_NAME_OR_PATH = "prajjwal1/bert-tiny"
 OUTPUT_DIM = 128

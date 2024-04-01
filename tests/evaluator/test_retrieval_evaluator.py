@@ -1,11 +1,11 @@
-from src.evaluators.retrieval import (
+from jmteb.evaluators.retrieval import (
     RetrievalDoc,
     RetrievalDocDataset,
     RetrievalEvaluator,
     RetrievalQuery,
     RetrievalQueryDataset,
 )
-from src.evaluators.retrieval.data import (
+from jmteb.evaluators.retrieval.data import (
     JsonlRetrievalDocDataset,
     JsonlRetrievalQueryDataset,
 )
