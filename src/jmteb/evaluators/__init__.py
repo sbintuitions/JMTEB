@@ -4,3 +4,4 @@ from .clustering import ClusteringEvaluator
 from .pair_classification import PairClassificationEvaluator
 from .retrieval import RetrievalEvaluator
 from .sts import STSEvaluator
+from .reranking import RerankingEvaluator
