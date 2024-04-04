@@ -37,7 +37,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
     ) -> None:
         self.query_dataset = query_dataset
         self.doc_dataset = doc_dataset
-        self.ndcg_at_k = ndcg_at_k or [10, 20]
+        self.ndcg_at_k = ndcg_at_k or [10, 20, 40]
         self.main_metric = f"ndcg@{self.ndcg_at_k[0]}"
 
     def __call__(
