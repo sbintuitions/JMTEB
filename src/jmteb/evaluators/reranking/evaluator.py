@@ -38,7 +38,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
     ) -> None:
         self.query_dataset = query_dataset
         self.doc_dataset = doc_dataset
-        self.main_metric = "ndcg"
+        self.ndcg_at_k = ndcg_at_k or [10, 20]
+        self.main_metric = f"ndcg@{self.ndcg_at_k[0]}"
 
     def __call__(
         self,
@@ -95,7 +96,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
             retrieved_docs_list = [item.retrieved_docs for item in self.query_dataset]
             relevance_scores_list = [item.relevance_scores for item in self.query_dataset]
 
-            dist_scores["ndcg"] = ndcg(retrieved_docs_list, relevance_scores_list, reranked_docs_list)
+            for k in self.ndcg_at_k:
+                dist_scores[f"ndcg@{k}"] = ndcg_at_k(retrieved_docs_list, relevance_scores_list, reranked_docs_list, k)
 
             results[dist_metric] = dist_scores
 
@@ -106,7 +108,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
         )
 
 
-def ndcg(retrieved_docs_list: list[list[T]], relevance_scores_list: list[list[T]], reranked_docs_list: list[list[T]], k: int=10) -> float:
+def ndcg_at_k(retrieved_docs_list: list[list[T]], relevance_scores_list: list[list[T]], reranked_docs_list: list[list[T]], k: int) -> float:
     total_ndcg_scores = 0
     for retrieved_docs, relevance_scores, reranked_docs in zip(retrieved_docs_list, relevance_scores_list, reranked_docs_list):
         dcg = 0
