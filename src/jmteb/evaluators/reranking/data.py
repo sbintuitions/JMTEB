@@ -50,7 +50,7 @@ class HfRerankingQueryDataset(RerankingQueryDataset):
         name: str | None = None,
         query_key: str = "query",
         retrieved_docs_key: str = "retrieved_docs",
-        relevance_scores_key: str = "relevance_scores"
+        relevance_scores_key: str = "relevance_scores",
     ):
         self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.query_key = query_key
@@ -64,7 +64,9 @@ class HfRerankingQueryDataset(RerankingQueryDataset):
         retrieved_docs = self.dataset[idx][self.retrieved_docs_key]
         relevance_scores = self.dataset[idx][self.relevance_scores_key]
 
-        return RerankingQuery(query=self.dataset[idx][self.query_key], retrieved_docs=retrieved_docs, relevance_scores=relevance_scores)
+        return RerankingQuery(
+            query=self.dataset[idx][self.query_key], retrieved_docs=retrieved_docs, relevance_scores=relevance_scores
+        )
 
 
 class JsonlRerankingQueryDataset(RerankingQueryDataset):
@@ -73,7 +75,7 @@ class JsonlRerankingQueryDataset(RerankingQueryDataset):
         filename: str,
         query_key: str = "query",
         retrieved_docs_key: str = "retrieved_docs",
-        relevance_scores_key: str = "relevance_scores"
+        relevance_scores_key: str = "relevance_scores",
     ):
         self.dataset: datasets.Dataset = datasets.load_dataset("json", data_files=filename)["train"]
         self.query_key = query_key
@@ -87,7 +89,9 @@ class JsonlRerankingQueryDataset(RerankingQueryDataset):
         retrieved_docs = self.dataset[idx][self.retrieved_docs_key]
         relevance_scores = self.dataset[idx][self.relevance_scores_key]
 
-        return RerankingQuery(query=self.dataset[idx][self.query_key], retrieved_docs=retrieved_docs, relevance_scores=relevance_scores)
+        return RerankingQuery(
+            query=self.dataset[idx][self.query_key], retrieved_docs=retrieved_docs, relevance_scores=relevance_scores
+        )
 
 
 class HfRerankingDocDataset(RerankingDocDataset):

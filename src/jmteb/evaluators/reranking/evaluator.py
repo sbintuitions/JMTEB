@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
@@ -81,7 +80,12 @@ class RerankingEvaluator(EmbeddingEvaluator):
                 reranked_docs_list = []
                 for i, item in enumerate(self.query_dataset):
                     query_embedding = convert_to_tensor(query_embeddings[i], device=device)
-                    doc_embedding = convert_to_tensor(np.array([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]), device=device)
+                    doc_embedding = convert_to_tensor(
+                        np.array(
+                            [doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]
+                        ),
+                        device=device,
+                    )
                     similarity = dist_func(query_embedding, doc_embedding)
 
                     argsorted_indices = torch.argsort(
@@ -92,7 +96,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
                     reranked_docs = [item.retrieved_docs[argsorted_indice] for argsorted_indice in argsorted_indices]
                     reranked_docs_list.append(reranked_docs)
                     pbar.update(i)
-            
+
             retrieved_docs_list = [item.retrieved_docs for item in self.query_dataset]
             relevance_scores_list = [item.relevance_scores for item in self.query_dataset]
 
@@ -108,14 +112,23 @@ class RerankingEvaluator(EmbeddingEvaluator):
         )
 
 
-def ndcg_at_k(retrieved_docs_list: list[list[T]], relevance_scores_list: list[list[T]], reranked_docs_list: list[list[T]], k: int) -> float:
+def ndcg_at_k(
+    retrieved_docs_list: list[list[T]], relevance_scores_list: list[list[T]], reranked_docs_list: list[list[T]], k: int
+) -> float:
     total_ndcg_scores = 0
-    for retrieved_docs, relevance_scores, reranked_docs in zip(retrieved_docs_list, relevance_scores_list, reranked_docs_list):
+    for retrieved_docs, relevance_scores, reranked_docs in zip(
+        retrieved_docs_list, relevance_scores_list, reranked_docs_list
+    ):
         dcg = 0
         for rank, doc_id in enumerate(reranked_docs[:k], start=1):
             relevance_score = relevance_scores[retrieved_docs.index(doc_id)]
             dcg += relevance_score / np.log2(rank + 1)
-        idcg = sum([relevance_score / np.log2(rank + 1) for rank, relevance_score in enumerate(sorted(relevance_scores)[::-1][:k], start=1)])
+        idcg = sum(
+            [
+                relevance_score / np.log2(rank + 1)
+                for rank, relevance_score in enumerate(sorted(relevance_scores)[::-1][:k], start=1)
+            ]
+        )
         total_ndcg_scores += dcg / idcg
     return total_ndcg_scores / len(retrieved_docs_list)
 

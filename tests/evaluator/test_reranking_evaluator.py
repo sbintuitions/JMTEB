@@ -24,7 +24,9 @@ class DummyDocDataset(RerankingDocDataset):
 
 class DummyQueryDataset(RerankingQueryDataset):
     def __init__(self):
-        self._items = [RerankingQuery(query=f"dummy query {i}", retrieved_docs=[str(i)], relevance_scores=[1]) for i in range(10)]
+        self._items = [
+            RerankingQuery(query=f"dummy query {i}", retrieved_docs=[str(i)], relevance_scores=[1]) for i in range(10)
+        ]
 
     def __len__(self):
         return len(self._items)
