@@ -17,4 +17,6 @@
 (import './tasks/jaqket.jsonnet') +
 (import './tasks/nlp_journal_title_abs.jsonnet') +
 (import './tasks/nlp_journal_title_intro.jsonnet') +
-(import './tasks/nlp_journal_abs_intro.jsonnet')
+(import './tasks/nlp_journal_abs_intro.jsonnet') + 
+// Reranking
+(import './tasks/esci.jsonnet')
