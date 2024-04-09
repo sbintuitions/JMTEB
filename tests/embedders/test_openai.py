@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 
 from jmteb.embedders import OpenAIEmbedder, TextEmbedder
 
-OUTPUT_DIM = 1536
+OUTPUT_DIM = 1536  # the maximum dim of default model `text-embedding-3-small`
 
 
 @pytest.fixture(scope="function")
