@@ -12,9 +12,9 @@ OUTPUT_DIM = 1536
 
 
 @pytest.fixture(scope="function")
-def mock_openai_embedder(mocker: MockerFixture, model="text-embedding-3-small"):
+def mock_openai_embedder(mocker: MockerFixture):
     mocker.patch("jmteb.embedders.openai_embedder.OpenAI")
-    return OpenAIEmbedder(model=model)
+    return OpenAIEmbedder(model="text-embedding-3-small")
 
 
 @dataclass
@@ -31,7 +31,7 @@ class MockOpenAIClientEmbedding:
     def create(input: str | list[str], model: str, dimensions: int):
         if isinstance(input, str):
             input = [input]
-        return MockData([MockEmbedding(embedding=[0.1] * dimensions)] * len(input))
+        return MockData(data=[MockEmbedding(embedding=[0.1] * dimensions)] * len(input))
 
 
 @pytest.mark.usefixtures("mock_openai_embedder")
@@ -63,7 +63,7 @@ class TestOpenAIEmbedder:
         assert OpenAIEmbedder(model="text-embedding-ada-002").dim == 1536
 
     def test_dim_over_max(self):
-        assert OpenAIEmbedder(dim=4096).dim == OUTPUT_DIM
+        assert OpenAIEmbedder(dim=2 * OUTPUT_DIM).dim == OUTPUT_DIM
 
     def test_dim_smaller(self):
-        assert OpenAIEmbedder(dim=128).dim == 128
+        assert OpenAIEmbedder(dim=OUTPUT_DIM // 2).dim == OUTPUT_DIM // 2
