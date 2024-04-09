@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import numpy as np
+from loguru import logger
 from openai import OpenAI
 
 from jmteb.embedders.base import TextEmbedder
+
+MODEL_DIM = {
+    "text-embedding-3-large": 3072,
+    "text-embedding-3-small": 1536,
+    "text-embedding-ada-002": 1536,
+}
 
 
 class OpenAIEmbedder(TextEmbedder):
@@ -21,14 +28,16 @@ class OpenAIEmbedder(TextEmbedder):
             dim (int, optional): Output dimension. Defaults to 1536.
         """
         self.client = OpenAI()  # API key written in .env
+        assert model in MODEL_DIM.keys(), f"`model` must be one of {list(MODEL_DIM.keys())}!"
         self.model = model
         if not dim:
-            if model == "text-embedding-3-large":
-                self.dim = 3072
-            else:
-                self.dim = 1536
+            self.dim = MODEL_DIM[self.model]
         else:
-            self.dim = dim
+            if dim > MODEL_DIM[self.model]:
+                self.dim = MODEL_DIM[self.model]
+                logger.warning(f"The maximum dimension of model {self.model} is {self.dim}, use dim={self.dim}.")
+            else:
+                self.dim = dim
 
     def encode(self, text: str | list[str]) -> np.ndarray:
         result = np.asarray(
