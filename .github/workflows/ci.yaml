@@ -49,6 +49,8 @@ jobs:
       - name: Run tests
         run: |
           poetry run pytest -v -s ./tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
   lint_check:
     runs-on: ubuntu-latest
