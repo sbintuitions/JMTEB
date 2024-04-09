@@ -23,6 +23,9 @@ class OpenAIEmbedder(TextEmbedder):
         `text-embedding-3-small` model: max 1536 dim
         `text-embedding-ada-002` model: max 1536 dim
 
+        OpenAI embeddings have been normalized to length 1. See
+            https://platform.openai.com/docs/guides/embeddings/which-distance-function-should-i-use
+
         Args:
             model (str, optional): Name of an OpenAI embedding model. Defaults to "text-embedding-3-small".
             dim (int, optional): Output dimension. Defaults to 1536.
