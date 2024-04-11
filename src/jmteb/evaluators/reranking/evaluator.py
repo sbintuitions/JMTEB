@@ -54,14 +54,14 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         test_query_embeddings = model.batch_encode_with_cache(
             text_list=[item.query for item in self.test_query_dataset],
-            cache_path=Path(cache_dir) / "query.bin" if cache_dir is not None else None,
+            cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
 
         if self.dev_query_dataset:
             dev_query_embeddings = model.batch_encode_with_cache(
                 text_list=[item.query for item in self.dev_query_dataset],
-                cache_path=Path(cache_dir) / "query.bin" if cache_dir is not None else None,
+                cache_path=Path(cache_dir) / "dev_query.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
             )
 
