@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
+from sklearn.metrics import accuracy_score
 
 from .helper import get_similarities
 
@@ -12,19 +13,51 @@ class ThresholdAccuracyMetric:
         embeddings1: Union[np.ndarray, torch.Tensor],
         embeddings2: Union[np.ndarray, torch.Tensor],
         golden: List[float],
+        dist_metric: str | None = None,
+        thresholds: dict[str, float] | None = None,
     ) -> Dict:
+        """evaluate function.
+        If `dist_metric` and `threshold` are given (calculated with the dev set), classify with the
+        given distance metric and threshold, and compute the accuracy score.
+        Otherwise, for all distance metrics, induce the optimal threshold and compute the accuracy.
+
+        Args:
+            embeddings1 (np.ndarray | torch.Tensor): embeddings for sentence1
+            embeddings2 (np.ndarray | torch.Tensor): embeddings for sentence2
+            golden (list[int]): golden labels, 0 or 1
+            dist_metric (str | None, optional): distance metric, optimal in dev set. Defaults to None.
+            thresholds (dict[str, float] | None, optional): threshold name and value. Defaults to None.
+
+        Raises:
+            ValueError: more than binary
+
+        Returns:
+            dict[str, dict[str, float]]:
+                { dist_metric: {"accuracy": score, "accuracy_threshold": threshold} }
+        """
+
         if len(set(golden)) != 2:
             raise ValueError("Support only binary classification.")
 
         similarities = get_similarities(embeddings1, embeddings2)
 
+        if dist_metric and thresholds:
+            high_score_more_similar = True if dist_metric in ["cosine_distance", "dot_similarities"] else False
+            threshold_value = thresholds.get("accuracy_threshold")
+            return {
+                dist_metric: {
+                    "binary_accuracy": self._compute_accuracy_with_given_threshold(
+                        similarities[dist_metric], golden, threshold_value, high_score_more_similar
+                    ),
+                    "binary_accuracy_threshold": threshold_value,
+                }
+            }
+
         scores: dict[str, float] = {}
         for dist_metric, dist in similarities.items():
-            _scores = {}
             high_score_more_similar = True if dist_metric in ["cosine_distance", "dot_similarities"] else False
-            accuracy = self._find_best_accuracy_threshold_binary(dist, golden, high_score_more_similar)[0]
-            _scores["accuracy"] = accuracy
-            scores[dist_metric] = _scores
+            accuracy, threshold = self._find_best_accuracy_threshold_binary(dist, golden, high_score_more_similar)
+            scores[dist_metric] = {"accuracy": accuracy, "accuracy_threshold": threshold}
         return scores
 
     @staticmethod
@@ -67,3 +100,28 @@ class ThresholdAccuracyMetric:
                 best_threshold = (rows[i][0] + rows[i + 1][0]) / 2
 
         return max_acc, best_threshold
+
+    @staticmethod
+    def _compute_accuracy_with_given_threshold(
+        similarities: np.ndarray,
+        labels: list,
+        threshold: float,
+        high_score_more_similar: bool,
+    ) -> float:
+        """Compute accuracy with scores being classified with the given threshold.
+
+        Args:
+            similarities (np.ndarray): similarity scores
+            labels (list): true labels, 0 or 1
+            threshold (float): given threshold
+            high_score_more_similar (bool): set True if higher score means higher similarity.
+
+        Returns:
+            float: accuarcy
+        """
+        if high_score_more_similar:
+            y_pred = [0 if score < threshold else 1 for score in similarities]
+        else:
+            y_pred = [1 if score < threshold else 0 for score in similarities]
+
+        return accuracy_score(y_true=labels, y_pred=y_pred)

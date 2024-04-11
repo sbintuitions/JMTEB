@@ -20,11 +20,13 @@ class STSEvaluator(EmbeddingEvaluator):
     Evaluator for STS task.
 
     Args:
-        dataset (STSDataset): dataset
+        test_dataset (STSDataset): test dataset
+        dev_dataset (STSDataset | None): dev dataset for hyperparameter tuning
     """
 
-    def __init__(self, dataset: STSDataset) -> None:
-        self.dataset = dataset
+    def __init__(self, test_dataset: STSDataset, dev_dataset: STSDataset | None = None) -> None:
+        self.test_dataset = test_dataset
+        self.dev_dataset = dev_dataset
         self.main_metric = "spearman"
 
     def __call__(
@@ -32,23 +34,17 @@ class STSEvaluator(EmbeddingEvaluator):
     ) -> EvaluationResults:
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
-        embeddings1 = model.batch_encode_with_cache(
-            [item.sentence1 for item in self.dataset],
-            cache_path=Path(cache_dir) / "embeddings1.bin" if cache_dir is not None else None,
-            overwrite_cache=overwrite_cache,
-        )
-        embeddings2 = model.batch_encode_with_cache(
-            [item.sentence2 for item in self.dataset],
-            cache_path=Path(cache_dir) / "embeddings2.bin" if cache_dir is not None else None,
-            overwrite_cache=overwrite_cache,
-        )
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        embeddings1 = convert_to_tensor(embeddings1, device)
-        embeddings2 = convert_to_tensor(embeddings2, device)
 
-        golden_scores = [item.score for item in self.dataset]
+        test_embeddings1, test_embeddings2, test_golden_scores = self._convert_to_embeddings(
+            model, self.test_dataset, "test", overwrite_cache, cache_dir
+        )
+        if self.dev_dataset:
+            dev_embeddings1, dev_embeddings2, dev_golden_scores = self._convert_to_embeddings(
+                model, self.dev_dataset, "dev", overwrite_cache, cache_dir
+            )
 
-        scores = {}
+        dev_results = {}
+        test_results = {}
 
         for dist_name, dist_func in {
             "cosine_similarity": PairwiseSimilarities.cosine_similarity,
@@ -56,17 +52,58 @@ class STSEvaluator(EmbeddingEvaluator):
             "euclidean_distance": PairwiseSimilarities.negative_euclidean_distance,
             "dot_score": PairwiseSimilarities.dot_score,
         }.items():
-            sim_score = dist_func(embeddings1, embeddings2).cpu()
-            scores[dist_name] = {
-                "pearson": pearsonr(golden_scores, sim_score)[0],
-                "spearman": spearmanr(golden_scores, sim_score)[0],
+            test_sim_score = dist_func(test_embeddings1, test_embeddings2).cpu()
+            test_results[dist_name] = {
+                "pearson": pearsonr(test_golden_scores, test_sim_score)[0],
+                "spearman": spearmanr(test_golden_scores, test_sim_score)[0],
             }
+            if self.dev_dataset:
+                dev_sim_score = dist_func(dev_embeddings1, dev_embeddings2).cpu()
+                dev_results[dist_name] = {
+                    "pearson": pearsonr(dev_golden_scores, dev_sim_score)[0],
+                    "spearman": spearmanr(dev_golden_scores, dev_sim_score)[0],
+                }
+
+        optimal_similarity_metric = sorted(
+            dev_results.items() if dev_results else test_results.items(),
+            key=lambda res: res[1][self.main_metric],
+            reverse=True,
+        )[0][0]
 
         return EvaluationResults(
             metric_name=self.main_metric,
-            metric_value=max([scores[self.main_metric] for scores in scores.values()]),
-            details=scores,
+            metric_value=test_results[optimal_similarity_metric][self.main_metric],
+            details={
+                "optimal_similarity_metric": optimal_similarity_metric,
+                "dev_scores": dev_results,
+                "test_scores": test_results,
+            },
         )
+
+    @staticmethod
+    def _convert_to_embeddings(
+        model: TextEmbedder,
+        dataset: STSDataset,
+        split: str = "test",
+        overwrite_cache: bool = False,
+        cache_dir: str | None = None,
+    ) -> tuple[Tensor, Tensor, list[float]]:
+        embeddings1 = model.batch_encode_with_cache(
+            [item.sentence1 for item in dataset],
+            cache_path=Path(cache_dir) / f"{split}_embeddings1.bin" if cache_dir is not None else None,
+            overwrite_cache=overwrite_cache,
+        )
+        embeddings2 = model.batch_encode_with_cache(
+            [item.sentence2 for item in dataset],
+            cache_path=Path(cache_dir) / f"{split}_embeddings2.bin" if cache_dir is not None else None,
+            overwrite_cache=overwrite_cache,
+        )
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        embeddings1 = convert_to_tensor(embeddings1, device)
+        embeddings2 = convert_to_tensor(embeddings2, device)
+
+        golden_scores = [item.score for item in dataset]
+        return embeddings1, embeddings2, golden_scores
 
 
 @dataclass

@@ -14,16 +14,17 @@ class DummySTSDataset(STSDataset):
 
 
 def test_sts(embedder):
-    evaluator = STSEvaluator(dataset=DummySTSDataset())
+    evaluator = STSEvaluator(test_dataset=DummySTSDataset())
     results = evaluator(model=embedder)
 
     expected_metrics = {"pearson", "spearman"}
     expected_sims = {"cosine_similarity", "manhatten_distance", "euclidean_distance", "dot_score"}
 
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == expected_sims
+    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_similarity_metric"}
+    assert set(results.details["test_scores"].keys()) == expected_sims
     for dist in expected_sims:
-        assert set(results.details[dist].keys()) == expected_metrics
+        assert set(results.details["test_scores"][dist].keys()) == expected_metrics
 
 
 def test_sts_jsonl_dataset():

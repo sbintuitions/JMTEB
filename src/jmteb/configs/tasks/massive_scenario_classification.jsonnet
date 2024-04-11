@@ -10,6 +10,14 @@
           name: 'massive_scenario_classification',
         },
       },
+      dev_dataset: {
+        class_path: 'HfClassificationDataset',
+        init_args: {
+          path: 'sbintuitions/JMTEB',
+          split: 'validation',
+          name: 'massive_scenario_classification',
+        },
+      },
       test_dataset: {
         class_path: 'HfClassificationDataset',
         init_args: {

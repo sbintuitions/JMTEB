@@ -18,12 +18,15 @@ class DummyClusteringDataset(ClusteringDataset):
 
 
 def test_kmeans_clustering(embedder):
-    evaluator = ClusteringEvaluator(dataset=DummyClusteringDataset())
+    evaluator = ClusteringEvaluator(test_dataset=DummyClusteringDataset())
     results = evaluator(model=embedder)
     expected_metrics = {"v_measure_score", "completeness_score", "homogeneity_score"}
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"MiniBatchKMeans"}
-    assert set(results.details["MiniBatchKMeans"].keys()) == expected_metrics
+    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_clustering_model_name"}
+    expected_clustering_models = {"MiniBatchKMeans", "AgglomerativeClustering", "BisectingKMeans", "Birch"}
+    assert set(results.details["test_scores"].keys()) == expected_clustering_models
+    for clustering_model in expected_clustering_models:
+        assert set(results.details["test_scores"][clustering_model].keys()) == expected_metrics
 
 
 def test_clustering_jsonl_dataset():

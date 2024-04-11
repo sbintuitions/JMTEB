@@ -2,7 +2,7 @@
   nlp_journal_abs_intro: {
     class_path: 'RetrievalEvaluator',
     init_args: {
-      query_dataset: {
+      test_query_dataset: {
         class_path: 'HfRetrievalQueryDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',

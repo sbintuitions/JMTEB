@@ -25,8 +25,9 @@ class RetrievalEvaluator(EmbeddingEvaluator):
     Evaluator for retrieval task.
 
     Args:
-        query_dataset (RetrievalQueryDataset): query dataset
+        test_query_dataset (RetrievalQueryDataset): query dataset
         doc_dataset (RetrievalDocDataset): document dataset
+        dev_query_dataset (RetrievalQueryDataset | None): validation dataset. Defaults to None.
         doc_chunk_size (int): The maximum size of corpus chunk. Smaller chunk requires less memory but lowers speed.
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
         accuracy_at_k (list[int] | None): accuracy in top k hits.
@@ -34,14 +35,16 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
     def __init__(
         self,
-        query_dataset: RetrievalQueryDataset,
+        test_query_dataset: RetrievalQueryDataset,
         doc_dataset: RetrievalDocDataset,
+        dev_query_dataset: RetrievalQueryDataset | None = None,
         doc_chunk_size: int = 1000000,
         accuracy_at_k: list[int] | None = None,
         ndcg_at_k: list[int] | None = None,
     ) -> None:
-        self.query_dataset = query_dataset
+        self.test_query_dataset = test_query_dataset
         self.doc_dataset = doc_dataset
+        self.dev_query_dataset = dev_query_dataset
 
         self.doc_chunk_size = doc_chunk_size
 
@@ -59,11 +62,18 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        query_embeddings = model.batch_encode_with_cache(
-            text_list=[item.query for item in self.query_dataset],
-            cache_path=Path(cache_dir) / "query.bin" if cache_dir is not None else None,
+        test_query_embeddings = model.batch_encode_with_cache(
+            text_list=[item.query for item in self.test_query_dataset],
+            cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
+
+        if self.dev_query_dataset:
+            dev_query_embeddings = model.batch_encode_with_cache(
+                text_list=[item.query for item in self.dev_query_dataset],
+                cache_path=Path(cache_dir) / "dev_query.bin" if cache_dir is not None else None,
+                overwrite_cache=overwrite_cache,
+            )
 
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
@@ -72,13 +82,53 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         )
 
         logger.info("Start retrieval")
-        results: dict[str, dict[str, float]] = {}
 
         dist_metrics: dict[str, Callable] = {
             "cosine_similarity": Similarities.cosine_similarity,
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
         }
+
+        test_results = self._compute_scores(
+            query_dataset=self.test_query_dataset,
+            query_embeddings=test_query_embeddings,
+            doc_embeddings=doc_embeddings,
+            dist_metrics=dist_metrics,
+        )
+        dev_results = {}
+
+        if self.dev_query_dataset:
+            dev_results = self._compute_scores(
+                query_dataset=self.dev_query_dataset,
+                query_embeddings=dev_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_metrics=dist_metrics,
+            )
+
+        optimal_dist_metric = sorted(
+            dev_results.items() if self.dev_query_dataset else test_results.items(),
+            key=lambda res: res[1][self.main_metric],
+            reverse=True,
+        )[0][0]
+
+        return EvaluationResults(
+            metric_name=self.main_metric,
+            metric_value=test_results[optimal_dist_metric][self.main_metric],
+            details={
+                "optimal_distance_metric": optimal_dist_metric,
+                "dev_scores": dev_results,
+                "test_scores": test_results,
+            },
+        )
+
+    def _compute_scores(
+        self,
+        query_dataset: RetrievalQueryDataset,
+        query_embeddings: np.ndarray,
+        doc_embeddings: np.ndarray,
+        dist_metrics: dict[str, callable],
+    ) -> dict[str, dict[str, float]]:
+        results: dict[str, dict[str, float]] = {}
 
         for dist_metric, dist_func in dist_metrics.items():
             dist_scores: dict[str, float] = {}
@@ -113,7 +163,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             sorting_indices_for_top_k = torch.argsort(-top_k_scores, axis=1)[:, :top_k]
             sorted_top_k_indices = torch.take_along_dim(top_k_indices, sorting_indices_for_top_k, axis=1).tolist()
 
-            golden_doc_ids = [item.relevant_docs for item in self.query_dataset]
+            golden_doc_ids = [item.relevant_docs for item in query_dataset]
             retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
 
             for k in self.accuracy_at_k:
@@ -124,11 +174,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
             results[dist_metric] = dist_scores
 
-        return EvaluationResults(
-            metric_name=self.main_metric,
-            metric_value=max([v[self.main_metric] for v in results.values()]),
-            details=results,
-        )
+        return results
 
 
 def accuracy_at_k(relevant_docs: list[list[T]], top_hits: list[list[T]], k: int) -> float:

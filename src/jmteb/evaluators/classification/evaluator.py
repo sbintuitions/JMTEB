@@ -24,6 +24,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             One of `micro`, `macro`, `samples`, `weighted`, `binary`. Multiple average methods are allowed,
             and delimited by comma, e.g., `macro, micro`.
             The first one is specified as the main index.
+        dev_dataset (ClassificationDataset): validation dataset
         classifiers (dict[str, Classifier]): classifiers to be evaluated.
     """
 
@@ -32,9 +33,11 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         train_dataset: ClassificationDataset,
         test_dataset: ClassificationDataset,
         average: str = "macro",
+        dev_dataset: ClassificationDataset | None = None,
         classifiers: dict[str, Classifier] | None = None,
     ) -> None:
         self.train_dataset = train_dataset
+        self.dev_dataset = dev_dataset
         self.test_dataset = test_dataset
         self.classifiers = classifiers or {
             "knn_cosine_k_2": KnnClassifier(k=2, distance_metric="cosine"),
@@ -53,13 +56,20 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        logger.info("Encoding training sentences...")
+        logger.info("Encoding training and validation sentences...")
         X_train = model.batch_encode_with_cache(
             [item.text for item in self.train_dataset],
             cache_path=Path(cache_dir) / "train_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
         y_train = [item.label for item in self.train_dataset]
+        if self.dev_dataset:
+            X_dev = model.batch_encode_with_cache(
+                [item.text for item in self.dev_dataset],
+                cache_path=Path(cache_dir) / "dev_embeddings.bin" if cache_dir is not None else None,
+                overwrite_cache=overwrite_cache,
+            )
+            y_dev = [item.label for item in self.dev_dataset]
 
         logger.info("Encoding test sentences...")
         X_test = model.batch_encode_with_cache(
@@ -69,22 +79,41 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         )
         y_test = [item.label for item in self.test_dataset]
 
-        results: dict[str, float] = {}
+        test_results: dict[str, float] = {}
+        dev_results: dict[str, float] = {}
         for classifier_name, classifier in self.classifiers.items():
             logger.info(f"Fitting classifier {classifier_name}...")
             classifier.fit(X_train, y_train)
             logger.info("Evaluating...")
-            classifier_results = {}
-            y_pred = classifier.predict(X_test)
 
-            # compute metrics
-            classifier_results["accuracy"] = accuracy_score(y_test, y_pred)
-            for average_method in self.average:
-                classifier_results[f"{average_method}_f1"] = f1_score(y_test, y_pred, average=average_method)
-            results[classifier_name] = classifier_results
+            if self.dev_dataset:
+                y_dev_pred = classifier.predict(X_dev)
+                dev_results[classifier_name] = self._compute_metrics(y_dev_pred, y_dev, self.average)
+
+            y_pred = classifier.predict(X_test)
+            classifier_results = self._compute_metrics(y_pred, y_test, self.average)
+            test_results[classifier_name] = classifier_results
+
+        optimal_classifier_name = sorted(
+            dev_results.items() if dev_results else test_results.items(),
+            key=lambda res: res[1][self.main_metric],
+            reverse=True,
+        )[0][0]
 
         return EvaluationResults(
             metric_name=self.main_metric,
-            metric_value=max([v[self.main_metric] for v in results.values()]),
-            details=results,
+            metric_value=test_results[optimal_classifier_name][self.main_metric],
+            details={
+                "optimal_classifier_name": optimal_classifier_name,
+                "dev_scores": dev_results,
+                "test_scores": test_results,
+            },
         )
+
+    @staticmethod
+    def _compute_metrics(y_pred: list, y_true: list, average: list) -> dict[str, float]:
+        classifier_results = {}
+        classifier_results["accuracy"] = accuracy_score(y_true, y_pred)
+        for average_method in average:
+            classifier_results[f"{average_method}_f1"] = f1_score(y_true, y_pred, average=average_method)
+        return classifier_results

@@ -35,7 +35,7 @@ class DummyQueryDataset(RetrievalQueryDataset):
 
 def test_retrieval_evaluator(embedder):
     evaluator = RetrievalEvaluator(
-        query_dataset=DummyQueryDataset(),
+        test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
         accuracy_at_k=[1, 3, 5, 10],
         ndcg_at_k=[1, 3, 5],
@@ -44,21 +44,22 @@ def test_retrieval_evaluator(embedder):
     results = evaluator(model=embedder)
 
     assert results.metric_name == "ndcg@1"
-    assert set(results.details.keys()) == {"cosine_similarity", "euclidean_distance", "dot_score"}
-    for scores in results.details.values():
+    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
+    assert set(results.details["test_scores"].keys()) == {"cosine_similarity", "euclidean_distance", "dot_score"}
+    for scores in results.details["test_scores"].values():
         for score in scores.keys():
             assert any(score.startswith(metric) for metric in ["accuracy", "mrr", "ndcg"])
 
 
 def test_if_chunking_does_not_change_result(embedder):
     evaluator1 = RetrievalEvaluator(
-        query_dataset=DummyQueryDataset(),
+        test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
         doc_chunk_size=3,
     )
 
     evaluator2 = RetrievalEvaluator(
-        query_dataset=DummyQueryDataset(),
+        test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
         doc_chunk_size=30,
     )

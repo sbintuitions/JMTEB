@@ -21,16 +21,17 @@ class DummyBinaryDataset(PairClassificationDataset):
 
 def test_pair_classification_binary(embedder):
     evaluator = PairClassificationEvaluator(
-        dataset=DummyBinaryDataset(),
+        test_dataset=DummyBinaryDataset(),
     )
     results = evaluator(model=embedder)
 
-    expected_metrics = {"accuracy", "binary_f1"}
+    expected_metrics = {"accuracy", "binary_f1", "accuracy_threshold", "binary_f1_threshold"}
     expected_distances = {"cosine_distances", "dot_similarities", "manhatten_distances", "euclidean_distances"}
 
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == expected_distances
-    for value in results.details.values():
+    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
+    assert set(results.details["test_scores"].keys()) == expected_distances
+    for value in results.details["test_scores"].values():
         assert set(value.keys()) == expected_metrics
 
 

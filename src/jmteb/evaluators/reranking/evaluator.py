@@ -24,18 +24,21 @@ class RerankingEvaluator(EmbeddingEvaluator):
     Evaluator for reranking task.
 
     Args:
-        query_dataset (RerankingQueryDataset): query dataset
+        test_query_dataset (RerankingQueryDataset): test query dataset used for computing the scores
         doc_dataset (RerankingDocDataset): document dataset
+        dev_query_dataset (RerankingQueryDataset | None): validation query dataset used for hyperparameter tuning
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
     """
 
     def __init__(
         self,
-        query_dataset: RerankingQueryDataset,
+        test_query_dataset: RerankingQueryDataset,
         doc_dataset: RerankingDocDataset,
+        dev_query_dataset: RerankingQueryDataset | None = None,
         ndcg_at_k: list[int] | None = None,
     ) -> None:
-        self.query_dataset = query_dataset
+        self.test_query_dataset = test_query_dataset
+        self.dev_query_dataset = dev_query_dataset
         self.doc_dataset = doc_dataset
         self.ndcg_at_k = ndcg_at_k or [10, 20, 40]
         self.main_metric = f"ndcg@{self.ndcg_at_k[0]}"
@@ -49,11 +52,18 @@ class RerankingEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        query_embeddings = model.batch_encode_with_cache(
-            text_list=[item.query for item in self.query_dataset],
+        test_query_embeddings = model.batch_encode_with_cache(
+            text_list=[item.query for item in self.test_query_dataset],
             cache_path=Path(cache_dir) / "query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
+
+        if self.dev_query_dataset:
+            dev_query_embeddings = model.batch_encode_with_cache(
+                text_list=[item.query for item in self.dev_query_dataset],
+                cache_path=Path(cache_dir) / "query.bin" if cache_dir is not None else None,
+                overwrite_cache=overwrite_cache,
+            )
 
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
@@ -61,10 +71,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
             overwrite_cache=overwrite_cache,
         )
 
-        doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
-
         logger.info("Start reranking")
-        results: dict[str, dict[str, float]] = {}
 
         dist_metrics: dict[str, Callable] = {
             "cosine_similarity": Similarities.cosine_similarity,
@@ -72,13 +79,54 @@ class RerankingEvaluator(EmbeddingEvaluator):
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
+        test_results = self._compute_scores(
+            query_dataset=self.test_query_dataset,
+            query_embeddings=test_query_embeddings,
+            doc_embeddings=doc_embeddings,
+            dist_metrics=dist_metrics,
+        )
+        dev_results = {}
+        if self.dev_query_dataset:
+            dev_results = self._compute_scores(
+                query_dataset=self.dev_query_dataset,
+                query_embeddings=dev_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_metrics=dist_metrics,
+            )
+
+        optimal_dist_metric = sorted(
+            dev_results.items() if self.dev_query_dataset else test_results.items(),
+            key=lambda res: res[1][self.main_metric],
+            reverse=True,
+        )[0][0]
+
+        return EvaluationResults(
+            metric_name=self.main_metric,
+            metric_value=test_results[optimal_dist_metric][self.main_metric],
+            details={
+                "optimal_distance_metric": optimal_dist_metric,
+                "dev_scores": dev_results,
+                "test_scores": test_results,
+            },
+        )
+
+    def _compute_scores(
+        self,
+        query_dataset: RerankingQueryDataset,
+        query_embeddings: np.ndarray,
+        doc_embeddings: np.ndarray,
+        dist_metrics: dict[str, Callable],
+    ) -> dict[str, dict[str, float]]:
+        results: dict[str, dict[str, float]] = {}
+        doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
+
         for dist_metric, dist_func in dist_metrics.items():
             dist_scores: dict[str, float] = {}
 
-            with tqdm.tqdm(total=len(self.query_dataset), desc="Reranking docs") as pbar:
+            with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
                 reranked_docs_list = []
-                for i, item in enumerate(self.query_dataset):
+                for i, item in enumerate(query_dataset):
                     query_embedding = convert_to_tensor(query_embeddings[i], device=device)
                     doc_embedding = convert_to_tensor(
                         np.array(
@@ -97,19 +145,15 @@ class RerankingEvaluator(EmbeddingEvaluator):
                     reranked_docs_list.append(reranked_docs)
                     pbar.update(i)
 
-            retrieved_docs_list = [item.retrieved_docs for item in self.query_dataset]
-            relevance_scores_list = [item.relevance_scores for item in self.query_dataset]
+            retrieved_docs_list = [item.retrieved_docs for item in query_dataset]
+            relevance_scores_list = [item.relevance_scores for item in query_dataset]
 
             for k in self.ndcg_at_k:
                 dist_scores[f"ndcg@{k}"] = ndcg_at_k(retrieved_docs_list, relevance_scores_list, reranked_docs_list, k)
 
             results[dist_metric] = dist_scores
 
-        return EvaluationResults(
-            metric_name=self.main_metric,
-            metric_value=max([v[self.main_metric] for v in results.values()]),
-            details=results,
-        )
+        return results
 
 
 def ndcg_at_k(

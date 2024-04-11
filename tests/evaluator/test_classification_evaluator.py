@@ -31,8 +31,9 @@ def test_classification_evaluator(embedder):
     results = evaluator(model=embedder)
     expected_metrics = {"accuracy", "macro_f1"}
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"logreg", "knn"}
-    for value in results.details.values():
+    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_classifier_name"}
+    assert set(results.details["test_scores"].keys()) == {"logreg", "knn"}
+    for value in results.details["test_scores"].values():
         assert set(value.keys()) == expected_metrics
 
 

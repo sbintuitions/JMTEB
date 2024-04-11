@@ -10,6 +10,14 @@
           name: 'amazon_review_classification',
         },
       },
+      dev_dataset: {
+        class_path: 'HfClassificationDataset',
+        init_args: {
+          path: 'sbintuitions/JMTEB',
+          split: 'validation',
+          name: 'amazon_review_classification',
+        },
+      },
       test_dataset: {
         class_path: 'HfClassificationDataset',
         init_args: {

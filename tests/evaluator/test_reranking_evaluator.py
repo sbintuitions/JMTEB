@@ -37,14 +37,15 @@ class DummyQueryDataset(RerankingQueryDataset):
 
 def test_reranking_evaluator(embedder):
     evaluator = RerankingEvaluator(
-        query_dataset=DummyQueryDataset(),
+        test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
     )
     results = evaluator(model=embedder)
 
     assert results.metric_name == "ndcg@10"
-    assert set(results.details.keys()) == {"cosine_similarity", "euclidean_distance", "dot_score"}
-    for scores in results.details.values():
+    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
+    assert set(results.details["test_scores"].keys()) == {"cosine_similarity", "euclidean_distance", "dot_score"}
+    for scores in results.details["test_scores"].values():
         for score in scores.keys():
             assert any(score.startswith(metric) for metric in ["ndcg"])
 
