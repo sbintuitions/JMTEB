@@ -8,7 +8,6 @@ from .helper import get_similarities
 
 
 class ThresholdAccuracyMetric:
-
     def evaluate(
         self,
         embeddings1: np.ndarray | torch.Tensor,
