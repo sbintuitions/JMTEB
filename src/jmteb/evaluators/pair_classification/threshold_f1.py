@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
-
 import numpy as np
 import torch
 from sklearn.metrics import f1_score
@@ -66,9 +64,9 @@ class ThresholdF1Metric:
     @staticmethod
     def _find_best_f1_threshold_binary(
         scores: np.ndarray,
-        labels: List,
+        labels: list,
         high_score_more_similar: bool,
-    ) -> Tuple[Dict[str, float], float]:
+    ) -> tuple[dict[str, float], float]:
         """Find the threshold that induces the best F1.
         Assume a label is either 0 or 1.
 

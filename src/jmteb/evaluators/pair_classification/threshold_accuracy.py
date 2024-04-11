@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from __future__ import annotations
 
 import numpy as np
 import torch
@@ -8,14 +8,15 @@ from .helper import get_similarities
 
 
 class ThresholdAccuracyMetric:
+
     def evaluate(
         self,
-        embeddings1: Union[np.ndarray, torch.Tensor],
-        embeddings2: Union[np.ndarray, torch.Tensor],
-        golden: List[float],
+        embeddings1: np.ndarray | torch.Tensor,
+        embeddings2: np.ndarray | torch.Tensor,
+        golden: list[float],
         dist_metric: str | None = None,
         thresholds: dict[str, float] | None = None,
-    ) -> Dict:
+    ) -> dict[str, dict[str, float]]:
         """evaluate function.
         If `dist_metric` and `threshold` are given (calculated with the dev set), classify with the
         given distance metric and threshold, and compute the accuracy score.
@@ -46,10 +47,10 @@ class ThresholdAccuracyMetric:
             threshold_value = thresholds.get("accuracy_threshold")
             return {
                 dist_metric: {
-                    "binary_accuracy": self._compute_accuracy_with_given_threshold(
+                    "accuracy": self._compute_accuracy_with_given_threshold(
                         similarities[dist_metric], golden, threshold_value, high_score_more_similar
                     ),
-                    "binary_accuracy_threshold": threshold_value,
+                    "accuracy_threshold": threshold_value,
                 }
             }
 
@@ -63,9 +64,9 @@ class ThresholdAccuracyMetric:
     @staticmethod
     def _find_best_accuracy_threshold_binary(
         scores: np.ndarray,
-        labels: List,
+        labels: list,
         high_score_more_similar: bool,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Find the threshold that induces the best accuracy.
         Assume a label is either 0 or 1.
 
