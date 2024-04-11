@@ -36,18 +36,37 @@ class DummyQueryDataset(RerankingQueryDataset):
 
 
 def test_reranking_evaluator(embedder):
-    evaluator = RerankingEvaluator(
-        test_query_dataset=DummyQueryDataset(),
-        doc_dataset=DummyDocDataset(),
-    )
+    evaluator = RerankingEvaluator(test_query_dataset=DummyQueryDataset(), doc_dataset=DummyDocDataset())
     results = evaluator(model=embedder)
+    expected_distance_metrics = {"cosine_similarity", "euclidean_distance", "dot_score"}
 
     assert results.metric_name == "ndcg@10"
     assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
-    assert set(results.details["test_scores"].keys()) == {"cosine_similarity", "euclidean_distance", "dot_score"}
+    assert results.details["optimal_distance_metric"] in expected_distance_metrics
+    assert results.details["dev_scores"] == {}
+    assert set(results.details["test_scores"].keys()) == expected_distance_metrics
     for scores in results.details["test_scores"].values():
         for score in scores.keys():
             assert any(score.startswith(metric) for metric in ["ndcg"])
+
+
+def test_reranking_evaluator_with_hyperparameter_tuning(embedder):
+    evaluator = RerankingEvaluator(
+        test_query_dataset=DummyQueryDataset(),
+        dev_query_dataset=DummyQueryDataset(),
+        doc_dataset=DummyDocDataset(),
+    )
+    results = evaluator(model=embedder)
+    expected_distance_metrics = {"cosine_similarity", "euclidean_distance", "dot_score"}
+
+    assert results.metric_name == "ndcg@10"
+    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
+    assert results.details["optimal_distance_metric"] in expected_distance_metrics
+    for score_splitname in ("dev_scores", "test_scores"):
+        assert set(results.details[score_splitname].keys()) == expected_distance_metrics
+        for scores in results.details[score_splitname].values():
+            for score in scores.keys():
+                assert any(score.startswith(metric) for metric in ["ndcg"])
 
 
 def test_jsonl_reranking_datasets():
