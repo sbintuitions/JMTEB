@@ -88,3 +88,29 @@ def test_jsonl_retrieval_datasets():
         text_key="text",
     )
     assert len(corpus) == 10
+
+
+def test_jsonl_retrieval_datasets_equal():
+    query_1 = JsonlRetrievalQueryDataset(
+        filename="tests/test_data/dummy_retrieval/val.jsonl",
+        query_key="question",
+        relevant_docs_key="answer",
+    )
+    query_2 = JsonlRetrievalQueryDataset(
+        filename="tests/test_data/dummy_retrieval/val.jsonl",
+        query_key="question",
+        relevant_docs_key="answer",
+    )
+    assert query_1 == query_2
+
+    corpus_1 = JsonlRetrievalDocDataset(
+        filename="tests/test_data/dummy_retrieval/corpus.jsonl",
+        id_key="docid",
+        text_key="text",
+    )
+    corpus_2 = JsonlRetrievalDocDataset(
+        filename="tests/test_data/dummy_retrieval/corpus.jsonl",
+        id_key="docid",
+        text_key="text",
+    )
+    assert corpus_1 == corpus_2

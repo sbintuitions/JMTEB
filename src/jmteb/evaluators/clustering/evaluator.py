@@ -49,12 +49,16 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         val_labels = [item.label for item in self.val_dataset]
 
         logger.info("Converting test data to embeddings...")
-        test_embeddings = model.batch_encode_with_cache(
-            [item.text for item in self.test_dataset],
-            cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
-            overwrite_cache=overwrite_cache,
-        )
-        test_labels = [item.label for item in self.test_dataset]
+        if self.val_dataset == self.test_dataset:
+            test_embeddings = val_embeddings
+            test_labels = val_labels
+        else:
+            test_embeddings = model.batch_encode_with_cache(
+                [item.text for item in self.test_dataset],
+                cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
+                overwrite_cache=overwrite_cache,
+            )
+            test_labels = [item.label for item in self.test_dataset]
 
         n_clusters = len(set(test_labels))
         clustering_models = {

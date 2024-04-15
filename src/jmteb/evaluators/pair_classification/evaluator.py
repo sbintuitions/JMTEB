@@ -41,9 +41,16 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
         val_embeddings1, val_embeddings2, val_golden_labels = self._convert_to_embeddings(
             model, self.val_dataset, "dev", overwrite_cache, cache_dir
         )
-        test_embeddings1, test_embeddings2, test_golden_labels = self._convert_to_embeddings(
-            model, self.test_dataset, "test", overwrite_cache, cache_dir
-        )
+        if self.val_dataset == self.test_dataset:
+            test_embeddings1, test_embeddings2, test_golden_labels = (
+                val_embeddings1,
+                val_embeddings2,
+                val_golden_labels,
+            )
+        else:
+            test_embeddings1, test_embeddings2, test_golden_labels = self._convert_to_embeddings(
+                model, self.test_dataset, "test", overwrite_cache, cache_dir
+            )
 
         val_results = {}
         test_results = {}

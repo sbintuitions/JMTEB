@@ -39,3 +39,19 @@ def test_sts_jsonl_dataset():
         label_key="label",
     )
     assert len(dataset) == 50
+
+
+def test_sts_jsonl_dataset_equal():
+    dataset_1 = JsonlSTSDataset(
+        filename="tests/test_data/dummy_sts/val.jsonl",
+        sentence1_key="sentence1",
+        sentence2_key="sentence2",
+        label_key="label",
+    )
+    dataset_2 = JsonlSTSDataset(
+        filename="tests/test_data/dummy_sts/val.jsonl",
+        sentence1_key="sentence1",
+        sentence2_key="sentence2",
+        label_key="label",
+    )
+    assert dataset_1 == dataset_2

@@ -48,3 +48,17 @@ def test_classification_jsonl_dataset():
         label_key="label",
     )
     assert len(dummy_jsonl_dataset) == 10
+
+
+def test_classification_jsonl_dataset_equal():
+    dummy_jsonl_dataset_1 = JsonlClassificationDataset(
+        filename="tests/test_data/dummy_classification/val.jsonl",
+        text_key="sentence",
+        label_key="label",
+    )
+    dummy_jsonl_dataset_2 = JsonlClassificationDataset(
+        filename="tests/test_data/dummy_classification/val.jsonl",
+        text_key="sentence",
+        label_key="label",
+    )
+    assert dummy_jsonl_dataset_1 == dummy_jsonl_dataset_2

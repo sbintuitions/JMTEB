@@ -40,3 +40,17 @@ def test_clustering_jsonl_dataset():
         label_key="label",
     )
     assert len(dataset) == 50
+
+
+def test_clustering_jsonl_dataset_equal():
+    dataset_1 = JsonlClusteringDataset(
+        filename="tests/test_data/dummy_clustering/val.jsonl",
+        text_key="text",
+        label_key="label",
+    )
+    dataset_2 = JsonlClusteringDataset(
+        filename="tests/test_data/dummy_clustering/val.jsonl",
+        text_key="text",
+        label_key="label",
+    )
+    assert dataset_1 == dataset_2

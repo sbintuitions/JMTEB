@@ -72,12 +72,16 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         y_val = [item.label for item in self.val_dataset]
 
         logger.info("Encoding test sentences...")
-        X_test = model.batch_encode_with_cache(
-            [item.text for item in self.test_dataset],
-            cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
-            overwrite_cache=overwrite_cache,
-        )
-        y_test = [item.label for item in self.test_dataset]
+        if self.val_dataset == self.test_dataset:
+            X_test = X_val
+            y_test = y_val
+        else:
+            X_test = model.batch_encode_with_cache(
+                [item.text for item in self.test_dataset],
+                cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
+                overwrite_cache=overwrite_cache,
+            )
+            y_test = [item.label for item in self.test_dataset]
 
         test_results: dict[str, float] = {}
         val_results: dict[str, float] = {}

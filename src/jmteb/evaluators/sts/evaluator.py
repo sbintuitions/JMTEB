@@ -38,6 +38,12 @@ class STSEvaluator(EmbeddingEvaluator):
         val_embeddings1, val_embeddings2, val_golden_scores = self._convert_to_embeddings(
             model, self.val_dataset, "dev", overwrite_cache, cache_dir
         )
+        if self.val_dataset == self.test_dataset:
+            test_embeddings1, test_embeddings2, test_golden_scores = (
+                val_embeddings1,
+                val_embeddings2,
+                val_golden_scores,
+            )
         test_embeddings1, test_embeddings2, test_golden_scores = self._convert_to_embeddings(
             model, self.test_dataset, "test", overwrite_cache, cache_dir
         )

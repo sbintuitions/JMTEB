@@ -47,3 +47,19 @@ def test_pair_classification_jsonl_dataset():
     )
     assert dataset.dataset.features["label"].dtype.startswith("int")
     assert len(dataset) == 50
+
+
+def test_pair_classification_jsonl_dataset_equal():
+    dataset_1 = JsonlPairClassificationDataset(
+        filename="tests/test_data/dummy_pair_classification/binary.jsonl",
+        sentence1_key="sentence1",
+        sentence2_key="sentence2",
+        label_key="label",
+    )
+    dataset_2 = JsonlPairClassificationDataset(
+        filename="tests/test_data/dummy_pair_classification/binary.jsonl",
+        sentence1_key="sentence1",
+        sentence2_key="sentence2",
+        label_key="label",
+    )
+    assert dataset_1 == dataset_2
