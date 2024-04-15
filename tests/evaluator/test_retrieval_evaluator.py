@@ -102,6 +102,8 @@ def test_jsonl_retrieval_datasets_equal():
         relevant_docs_key="answer",
     )
     assert query_1 == query_2
+    query_2.relevant_docs_key = "ANSWER"
+    assert query_1 != query_2
 
     corpus_1 = JsonlRetrievalDocDataset(
         filename="tests/test_data/dummy_retrieval/corpus.jsonl",
@@ -114,3 +116,5 @@ def test_jsonl_retrieval_datasets_equal():
         text_key="text",
     )
     assert corpus_1 == corpus_2
+    corpus_2.text_key = "TEXT"
+    assert corpus_1 != corpus_2

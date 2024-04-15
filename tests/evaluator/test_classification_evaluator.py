@@ -62,3 +62,5 @@ def test_classification_jsonl_dataset_equal():
         label_key="label",
     )
     assert dummy_jsonl_dataset_1 == dummy_jsonl_dataset_2
+    dummy_jsonl_dataset_2.label_key = "LABEL"
+    assert dummy_jsonl_dataset_1 != dummy_jsonl_dataset_2

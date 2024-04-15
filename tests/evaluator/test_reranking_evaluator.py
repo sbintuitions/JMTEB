@@ -71,7 +71,11 @@ def test_jsonl_reranking_datasets_equal():
     query_1 = JsonlRerankingQueryDataset(filename="tests/test_data/dummy_reranking/val.jsonl")
     query_2 = JsonlRerankingQueryDataset(filename="tests/test_data/dummy_reranking/val.jsonl")
     assert query_1 == query_2
+    query_2.filename = ""
+    assert query_1 != query_2
 
     corpus_1 = JsonlRerankingDocDataset(filename="tests/test_data/dummy_reranking/corpus.jsonl")
     corpus_2 = JsonlRerankingDocDataset(filename="tests/test_data/dummy_reranking/corpus.jsonl")
     assert corpus_1 == corpus_2
+    corpus_2.filename = ""
+    assert corpus_1 != corpus_2

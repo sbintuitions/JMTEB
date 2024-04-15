@@ -55,3 +55,5 @@ def test_sts_jsonl_dataset_equal():
         label_key="label",
     )
     assert dataset_1 == dataset_2
+    dataset_2.label_key = "LABEL"
+    assert dataset_1 != dataset_2
