@@ -14,7 +14,7 @@ class DummySTSDataset(STSDataset):
 
 
 def test_sts(embedder):
-    evaluator = STSEvaluator(test_dataset=DummySTSDataset())
+    evaluator = STSEvaluator(val_dataset=DummySTSDataset(), test_dataset=DummySTSDataset())
     results = evaluator(model=embedder)
 
     expected_metrics = {"pearson", "spearman"}
@@ -23,26 +23,12 @@ def test_sts(embedder):
     assert results.metric_name in expected_metrics
     assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_similarity_metric"}
     assert results.details["optimal_similarity_metric"] in expected_sims
-    assert results.details["dev_scores"] == {}
-    assert set(results.details["test_scores"].keys()) == expected_sims
-    for dist in expected_sims:
-        assert set(results.details["test_scores"][dist].keys()) == expected_metrics
-
-
-def test_sts_with_hyperparameter_tuning(embedder):
-    evaluator = STSEvaluator(test_dataset=DummySTSDataset(), dev_dataset=DummySTSDataset())
-    results = evaluator(model=embedder)
-
-    expected_metrics = {"pearson", "spearman"}
-    expected_sims = {"cosine_similarity", "manhatten_distance", "euclidean_distance", "dot_score"}
-
-    assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_similarity_metric"}
-    assert results.details["optimal_similarity_metric"] in expected_sims
+    assert set(results.details["dev_scores"].keys()) == expected_sims
+    assert list(results.details["test_scores"].keys()) in [[dist] for dist in expected_sims]
     for score_splitname in ("dev_scores", "test_scores"):
-        assert set(results.details[score_splitname].keys()) == expected_sims
         for dist in expected_sims:
-            assert set(results.details[score_splitname][dist].keys()) == expected_metrics
+            if dist in results.details[score_splitname]:
+                assert set(results.details[score_splitname][dist].keys()) == expected_metrics
 
 
 def test_sts_jsonl_dataset():

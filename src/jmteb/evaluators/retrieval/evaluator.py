@@ -25,9 +25,9 @@ class RetrievalEvaluator(EmbeddingEvaluator):
     Evaluator for retrieval task.
 
     Args:
+        dev_query_dataset (RetrievalQueryDataset): validation dataset
         test_query_dataset (RetrievalQueryDataset): query dataset
         doc_dataset (RetrievalDocDataset): document dataset
-        dev_query_dataset (RetrievalQueryDataset | None): validation dataset. Defaults to None.
         doc_chunk_size (int): The maximum size of corpus chunk. Smaller chunk requires less memory but lowers speed.
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
         accuracy_at_k (list[int] | None): accuracy in top k hits.
@@ -35,16 +35,16 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
     def __init__(
         self,
+        dev_query_dataset: RetrievalQueryDataset,
         test_query_dataset: RetrievalQueryDataset,
         doc_dataset: RetrievalDocDataset,
-        dev_query_dataset: RetrievalQueryDataset | None = None,
         doc_chunk_size: int = 1000000,
         accuracy_at_k: list[int] | None = None,
         ndcg_at_k: list[int] | None = None,
     ) -> None:
+        self.dev_query_dataset = dev_query_dataset
         self.test_query_dataset = test_query_dataset
         self.doc_dataset = doc_dataset
-        self.dev_query_dataset = dev_query_dataset
 
         self.doc_chunk_size = doc_chunk_size
 
@@ -89,27 +89,21 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
+        dev_results = self._compute_scores(
+            query_dataset=self.dev_query_dataset,
+            query_embeddings=dev_query_embeddings,
+            doc_embeddings=doc_embeddings,
+            dist_metrics=dist_metrics,
+        )
+        sorted_dev_results = sorted(dev_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
+        optimal_dist_metric = sorted_dev_results[0][0]
+
         test_results = self._compute_scores(
             query_dataset=self.test_query_dataset,
             query_embeddings=test_query_embeddings,
             doc_embeddings=doc_embeddings,
-            dist_metrics=dist_metrics,
+            dist_metrics={optimal_dist_metric: dist_metrics[optimal_dist_metric]},
         )
-        dev_results = {}
-
-        if self.dev_query_dataset:
-            dev_results = self._compute_scores(
-                query_dataset=self.dev_query_dataset,
-                query_embeddings=dev_query_embeddings,
-                doc_embeddings=doc_embeddings,
-                dist_metrics=dist_metrics,
-            )
-
-        optimal_dist_metric = sorted(
-            dev_results.items() if self.dev_query_dataset else test_results.items(),
-            key=lambda res: res[1][self.main_metric],
-            reverse=True,
-        )[0][0]
 
         return EvaluationResults(
             metric_name=self.main_metric,

@@ -18,31 +18,19 @@ class DummyClusteringDataset(ClusteringDataset):
 
 
 def test_kmeans_clustering(embedder):
-    evaluator = ClusteringEvaluator(test_dataset=DummyClusteringDataset())
+    evaluator = ClusteringEvaluator(val_dataset=DummyClusteringDataset(), test_dataset=DummyClusteringDataset())
     results = evaluator(model=embedder)
     expected_metrics = {"v_measure_score", "completeness_score", "homogeneity_score"}
     assert results.metric_name in expected_metrics
     assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_clustering_model_name"}
     expected_clustering_models = {"MiniBatchKMeans", "AgglomerativeClustering", "BisectingKMeans", "Birch"}
     assert results.details["optimal_clustering_model_name"] in expected_clustering_models
-    assert results.details["dev_scores"] == {}
-    assert set(results.details["test_scores"].keys()) == expected_clustering_models
-    for clustering_model in expected_clustering_models:
-        assert set(results.details["test_scores"][clustering_model].keys()) == expected_metrics
-
-
-def test_kmeans_clustering_with_hyperparameter_tuning(embedder):
-    evaluator = ClusteringEvaluator(test_dataset=DummyClusteringDataset(), dev_dataset=DummyClusteringDataset())
-    results = evaluator(model=embedder)
-    expected_metrics = {"v_measure_score", "completeness_score", "homogeneity_score"}
-    assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_clustering_model_name"}
-    expected_clustering_models = {"MiniBatchKMeans", "AgglomerativeClustering", "BisectingKMeans", "Birch"}
-    assert results.details["optimal_clustering_model_name"] in expected_clustering_models
+    assert set(results.details["dev_scores"].keys()) == expected_clustering_models
+    assert list(results.details["test_scores"].keys()) in [[model] for model in expected_clustering_models]
     for score_splitname in ("dev_scores", "test_scores"):
-        assert set(results.details[score_splitname].keys()) == expected_clustering_models
         for clustering_model in expected_clustering_models:
-            assert set(results.details[score_splitname][clustering_model].keys()) == expected_metrics
+            if clustering_model in results.details[score_splitname]:
+                assert set(results.details[score_splitname][clustering_model].keys()) == expected_metrics
 
 
 def test_clustering_jsonl_dataset():

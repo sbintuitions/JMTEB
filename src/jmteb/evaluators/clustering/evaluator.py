@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from os import PathLike
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from loguru import logger
@@ -22,21 +23,15 @@ from .data import ClusteringDataset
 class ClusteringEvaluator(EmbeddingEvaluator):
     """
     ClusteringEvaluator is a class for evaluating clustering models.
-
-    Args:
-        k (int): Number of clusters.
-        k_means_clustering (bool): Whether to use K-means clustering. Defaults to True.
-        hierarchical_clustering (bool): Whether to use hierarchical clustering methods
-            (AgglomerativeClustering, Birch, BisectingKMeans) other than MiniBatchKMeans.
     """
 
     def __init__(
         self,
+        dev_dataset: ClusteringDataset,
         test_dataset: ClusteringDataset,
-        dev_dataset: ClusteringDataset | None = None,
     ) -> None:
-        self.test_dataset = test_dataset
         self.dev_dataset = dev_dataset
+        self.test_dataset = test_dataset
         self.main_metric = "v_measure_score"
 
     def __call__(
@@ -44,14 +39,14 @@ class ClusteringEvaluator(EmbeddingEvaluator):
     ) -> EvaluationResults:
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
-        if self.dev_dataset:
-            logger.info("Converting validatin data to embeddings...")
-            dev_embeddings = model.batch_encode_with_cache(
-                [item.text for item in self.dev_dataset],
-                cache_path=Path(cache_dir) / "dev_embeddings.bin" if cache_dir is not None else None,
-                overwrite_cache=overwrite_cache,
-            )
-            dev_labels = [item.label for item in self.dev_dataset]
+
+        logger.info("Converting validation data to embeddings...")
+        dev_embeddings = model.batch_encode_with_cache(
+            [item.text for item in self.dev_dataset],
+            cache_path=Path(cache_dir) / "dev_embeddings.bin" if cache_dir is not None else None,
+            overwrite_cache=overwrite_cache,
+        )
+        dev_labels = [item.label for item in self.dev_dataset]
 
         logger.info("Converting test data to embeddings...")
         test_embeddings = model.batch_encode_with_cache(
@@ -61,16 +56,30 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         )
         test_labels = [item.label for item in self.test_dataset]
 
+        n_clusters = len(set(test_labels))
+        clustering_models = {
+            type(model).__name__: model
+            for model in (
+                MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
+                AgglomerativeClustering(n_clusters=n_clusters),
+                BisectingKMeans(n_clusters=n_clusters),
+                Birch(n_clusters=n_clusters),
+            )
+        }
+
         logger.info("Fitting clustering model...")
-        test_results = self._evaluate_clustering_models(test_embeddings, test_labels)
-        dev_results = {}
-        if self.dev_dataset:
-            dev_results = self._evaluate_clustering_models(dev_embeddings, dev_labels)
+        dev_results = self._evaluate_clustering_models(dev_embeddings, dev_labels, clustering_models)
         optimal_clustering_model_name = sorted(
-            dev_results.items() if dev_results else test_results.items(),
+            dev_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
         )[0][0]
+
+        test_results = self._evaluate_clustering_models(
+            test_embeddings,
+            test_labels,
+            {optimal_clustering_model_name: clustering_models[optimal_clustering_model_name]},
+        )
 
         return EvaluationResults(
             metric_name=self.main_metric,
@@ -82,26 +91,16 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             },
         )
 
-    @staticmethod
-    def _init_clustering_models(n_clusters):
-        return (
-            MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
-            AgglomerativeClustering(n_clusters=n_clusters),
-            BisectingKMeans(n_clusters=n_clusters),
-            Birch(n_clusters=n_clusters),
-        )
-
-    def _evaluate_clustering_models(self, embeddings: np.ndarray, y_true: list) -> dict[str, float]:
+    def _evaluate_clustering_models(
+        self, embeddings: np.ndarray, y_true: list, clustering_models: dict[str, Any]
+    ) -> dict[str, float]:
         results = {}
-        n_clusters = len(set(y_true))
-        clustering_models = self._init_clustering_models(n_clusters)
-        for clustering_model in clustering_models:
+        for clustering_model_name, clustering_model in clustering_models.items():
             clustering_model.fit(embeddings)
             y_pred = clustering_model.labels_
             h_score, c_score, v_score = homogeneity_completeness_v_measure(
                 labels_pred=y_pred, labels_true=np.array(y_true)
             )
-            clustering_model_name = type(clustering_model).__name__
             results[clustering_model_name] = {
                 "v_measure_score": v_score,
                 "homogeneity_score": h_score,

@@ -19,21 +19,21 @@ class ClassificationEvaluator(EmbeddingEvaluator):
 
     Args:
         train_dataset (ClassificationDataset): training dataset
+        dev_dataset (ClassificationDataset): validation dataset
         test_dataset (ClassificationDataset): evaluation dataset
         average (str): average method used in multiclass classification in F1 score and average precision score,
             One of `micro`, `macro`, `samples`, `weighted`, `binary`. Multiple average methods are allowed,
             and delimited by comma, e.g., `macro, micro`.
             The first one is specified as the main index.
-        dev_dataset (ClassificationDataset): validation dataset
         classifiers (dict[str, Classifier]): classifiers to be evaluated.
     """
 
     def __init__(
         self,
         train_dataset: ClassificationDataset,
+        dev_dataset: ClassificationDataset,
         test_dataset: ClassificationDataset,
         average: str = "macro",
-        dev_dataset: ClassificationDataset | None = None,
         classifiers: dict[str, Classifier] | None = None,
     ) -> None:
         self.train_dataset = train_dataset
@@ -63,13 +63,13 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             overwrite_cache=overwrite_cache,
         )
         y_train = [item.label for item in self.train_dataset]
-        if self.dev_dataset:
-            X_dev = model.batch_encode_with_cache(
-                [item.text for item in self.dev_dataset],
-                cache_path=Path(cache_dir) / "dev_embeddings.bin" if cache_dir is not None else None,
-                overwrite_cache=overwrite_cache,
-            )
-            y_dev = [item.label for item in self.dev_dataset]
+
+        X_dev = model.batch_encode_with_cache(
+            [item.text for item in self.dev_dataset],
+            cache_path=Path(cache_dir) / "dev_embeddings.bin" if cache_dir is not None else None,
+            overwrite_cache=overwrite_cache,
+        )
+        y_dev = [item.label for item in self.dev_dataset]
 
         logger.info("Encoding test sentences...")
         X_test = model.batch_encode_with_cache(
@@ -90,15 +90,16 @@ class ClassificationEvaluator(EmbeddingEvaluator):
                 y_dev_pred = classifier.predict(X_dev)
                 dev_results[classifier_name] = self._compute_metrics(y_dev_pred, y_dev, self.average)
 
-            y_pred = classifier.predict(X_test)
-            classifier_results = self._compute_metrics(y_pred, y_test, self.average)
-            test_results[classifier_name] = classifier_results
-
-        optimal_classifier_name = sorted(
-            dev_results.items() if dev_results else test_results.items(),
+        sorted_dev_results = sorted(
+            dev_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
-        )[0][0]
+        )
+        optimal_classifier_name = sorted_dev_results[0][0]
+
+        optimal_classifier = self.classifiers[optimal_classifier_name]
+        y_pred = optimal_classifier.predict(X_test)
+        test_results[optimal_classifier_name] = self._compute_metrics(y_pred, y_test, self.average)
 
         return EvaluationResults(
             metric_name=self.main_metric,

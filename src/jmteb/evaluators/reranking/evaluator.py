@@ -24,17 +24,17 @@ class RerankingEvaluator(EmbeddingEvaluator):
     Evaluator for reranking task.
 
     Args:
+        dev_query_dataset (RerankingQueryDataset): validation query dataset used for hyperparameter tuning
         test_query_dataset (RerankingQueryDataset): test query dataset used for computing the scores
         doc_dataset (RerankingDocDataset): document dataset
-        dev_query_dataset (RerankingQueryDataset | None): validation query dataset used for hyperparameter tuning
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
     """
 
     def __init__(
         self,
+        dev_query_dataset: RerankingQueryDataset,
         test_query_dataset: RerankingQueryDataset,
         doc_dataset: RerankingDocDataset,
-        dev_query_dataset: RerankingQueryDataset | None = None,
         ndcg_at_k: list[int] | None = None,
     ) -> None:
         self.test_query_dataset = test_query_dataset
@@ -52,19 +52,16 @@ class RerankingEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
+        dev_query_embeddings = model.batch_encode_with_cache(
+            text_list=[item.query for item in self.dev_query_dataset],
+            cache_path=Path(cache_dir) / "dev_query.bin" if cache_dir is not None else None,
+            overwrite_cache=overwrite_cache,
+        )
         test_query_embeddings = model.batch_encode_with_cache(
             text_list=[item.query for item in self.test_query_dataset],
             cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
-
-        if self.dev_query_dataset:
-            dev_query_embeddings = model.batch_encode_with_cache(
-                text_list=[item.query for item in self.dev_query_dataset],
-                cache_path=Path(cache_dir) / "dev_query.bin" if cache_dir is not None else None,
-                overwrite_cache=overwrite_cache,
-            )
-
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
@@ -79,26 +76,20 @@ class RerankingEvaluator(EmbeddingEvaluator):
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
+        dev_results = self._compute_scores(
+            query_dataset=self.dev_query_dataset,
+            query_embeddings=dev_query_embeddings,
+            doc_embeddings=doc_embeddings,
+            dist_metrics=dist_metrics,
+        )
+        sorted_dev_results = sorted(dev_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
+        optimal_dist_metric = sorted_dev_results[0][0]
         test_results = self._compute_scores(
             query_dataset=self.test_query_dataset,
             query_embeddings=test_query_embeddings,
             doc_embeddings=doc_embeddings,
-            dist_metrics=dist_metrics,
+            dist_metrics={optimal_dist_metric: dist_metrics[optimal_dist_metric]},
         )
-        dev_results = {}
-        if self.dev_query_dataset:
-            dev_results = self._compute_scores(
-                query_dataset=self.dev_query_dataset,
-                query_embeddings=dev_query_embeddings,
-                doc_embeddings=doc_embeddings,
-                dist_metrics=dist_metrics,
-            )
-
-        optimal_dist_metric = sorted(
-            dev_results.items() if self.dev_query_dataset else test_results.items(),
-            key=lambda res: res[1][self.main_metric],
-            reverse=True,
-        )[0][0]
 
         return EvaluationResults(
             metric_name=self.main_metric,

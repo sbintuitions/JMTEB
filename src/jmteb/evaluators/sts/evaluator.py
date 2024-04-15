@@ -20,13 +20,13 @@ class STSEvaluator(EmbeddingEvaluator):
     Evaluator for STS task.
 
     Args:
+        dev_dataset (STSDataset): dev dataset for hyperparameter tuning
         test_dataset (STSDataset): test dataset
-        dev_dataset (STSDataset | None): dev dataset for hyperparameter tuning
     """
 
-    def __init__(self, test_dataset: STSDataset, dev_dataset: STSDataset | None = None) -> None:
-        self.test_dataset = test_dataset
+    def __init__(self, dev_dataset: STSDataset, test_dataset: STSDataset) -> None:
         self.dev_dataset = dev_dataset
+        self.test_dataset = test_dataset
         self.main_metric = "spearman"
 
     def __call__(
@@ -35,40 +35,37 @@ class STSEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
+        dev_embeddings1, dev_embeddings2, dev_golden_scores = self._convert_to_embeddings(
+            model, self.dev_dataset, "dev", overwrite_cache, cache_dir
+        )
         test_embeddings1, test_embeddings2, test_golden_scores = self._convert_to_embeddings(
             model, self.test_dataset, "test", overwrite_cache, cache_dir
         )
-        if self.dev_dataset:
-            dev_embeddings1, dev_embeddings2, dev_golden_scores = self._convert_to_embeddings(
-                model, self.dev_dataset, "dev", overwrite_cache, cache_dir
-            )
 
         dev_results = {}
         test_results = {}
 
-        for dist_name, dist_func in {
+        similarity_metrics = {
             "cosine_similarity": PairwiseSimilarities.cosine_similarity,
             "manhatten_distance": PairwiseSimilarities.negative_manhatten_distance,
             "euclidean_distance": PairwiseSimilarities.negative_euclidean_distance,
             "dot_score": PairwiseSimilarities.dot_score,
-        }.items():
-            test_sim_score = dist_func(test_embeddings1, test_embeddings2).cpu()
-            test_results[dist_name] = {
-                "pearson": pearsonr(test_golden_scores, test_sim_score)[0],
-                "spearman": spearmanr(test_golden_scores, test_sim_score)[0],
-            }
-            if self.dev_dataset:
-                dev_sim_score = dist_func(dev_embeddings1, dev_embeddings2).cpu()
-                dev_results[dist_name] = {
-                    "pearson": pearsonr(dev_golden_scores, dev_sim_score)[0],
-                    "spearman": spearmanr(dev_golden_scores, dev_sim_score)[0],
-                }
+        }
 
+        dev_results = self._compute_similarity_scores(
+            dev_embeddings1, dev_embeddings2, dev_golden_scores, similarity_metrics
+        )
         optimal_similarity_metric = sorted(
-            dev_results.items() if dev_results else test_results.items(),
+            dev_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
         )[0][0]
+        test_results = self._compute_similarity_scores(
+            test_embeddings1,
+            test_embeddings2,
+            test_golden_scores,
+            {optimal_similarity_metric: similarity_metrics[optimal_similarity_metric]},
+        )
 
         return EvaluationResults(
             metric_name=self.main_metric,
@@ -79,6 +76,22 @@ class STSEvaluator(EmbeddingEvaluator):
                 "test_scores": test_results,
             },
         )
+
+    @staticmethod
+    def _compute_similarity_scores(
+        embeddings1: Tensor,
+        embeddings2: Tensor,
+        golden_scores: list,
+        similarity_metrics: dict[str, callable],
+    ) -> dict[str, dict[str, float]]:
+        results = {}
+        for dist_name, dist_func in similarity_metrics.items():
+            test_sim_score = dist_func(embeddings1, embeddings2).cpu()
+            results[dist_name] = {
+                "pearson": pearsonr(golden_scores, test_sim_score)[0],
+                "spearman": spearmanr(golden_scores, test_sim_score)[0],
+            }
+        return results
 
     @staticmethod
     def _convert_to_embeddings(
