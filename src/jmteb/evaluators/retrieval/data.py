@@ -109,7 +109,7 @@ class JsonlRetrievalQueryDataset(RetrievalQueryDataset):
         if not isinstance(other, self.__class__):
             return False
 
-        for attribute in ("filename", "query_key", "relevance_scores_key"):
+        for attribute in ("filename", "query_key", "relevant_docs_key"):
             if getattr(self, attribute, None) != getattr(other, attribute, None):
                 return False
         return True
