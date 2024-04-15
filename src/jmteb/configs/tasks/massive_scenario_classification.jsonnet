@@ -10,7 +10,7 @@
           name: 'massive_scenario_classification',
         },
       },
-      dev_dataset: {
+      val_dataset: {
         class_path: 'HfClassificationDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',

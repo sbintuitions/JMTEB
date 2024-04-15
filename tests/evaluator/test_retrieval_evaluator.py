@@ -35,7 +35,7 @@ class DummyQueryDataset(RetrievalQueryDataset):
 
 def test_retrieval_evaluator(embedder):
     evaluator = RetrievalEvaluator(
-        dev_query_dataset=DummyQueryDataset(),
+        val_query_dataset=DummyQueryDataset(),
         test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
         accuracy_at_k=[1, 3, 5, 10],
@@ -46,11 +46,11 @@ def test_retrieval_evaluator(embedder):
     expected_distance_metrics = {"cosine_similarity", "euclidean_distance", "dot_score"}
 
     assert results.metric_name == "ndcg@1"
-    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
+    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_distance_metric"}
     assert results.details["optimal_distance_metric"] in expected_distance_metrics
-    assert set(results.details["dev_scores"].keys()) == expected_distance_metrics
+    assert set(results.details["val_scores"].keys()) == expected_distance_metrics
     assert list(results.details["test_scores"].keys()) in [[sim] for sim in expected_distance_metrics]
-    for score_splitname in ("dev_scores", "test_scores"):
+    for score_splitname in ("val_scores", "test_scores"):
         for scores in results.details[score_splitname].values():
             for score in scores.keys():
                 assert any(score.startswith(metric) for metric in ["accuracy", "mrr", "ndcg"])
@@ -58,14 +58,14 @@ def test_retrieval_evaluator(embedder):
 
 def test_if_chunking_does_not_change_result(embedder):
     evaluator1 = RetrievalEvaluator(
-        dev_query_dataset=DummyQueryDataset(),
+        val_query_dataset=DummyQueryDataset(),
         test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
         doc_chunk_size=3,
     )
 
     evaluator2 = RetrievalEvaluator(
-        dev_query_dataset=DummyQueryDataset(),
+        val_query_dataset=DummyQueryDataset(),
         test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
         doc_chunk_size=30,
@@ -76,7 +76,7 @@ def test_if_chunking_does_not_change_result(embedder):
 
 def test_jsonl_retrieval_datasets():
     query = JsonlRetrievalQueryDataset(
-        filename="tests/test_data/dummy_retrieval/dev.jsonl",
+        filename="tests/test_data/dummy_retrieval/val.jsonl",
         query_key="question",
         relevant_docs_key="answer",
     )

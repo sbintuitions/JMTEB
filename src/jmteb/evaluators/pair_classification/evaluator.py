@@ -18,17 +18,17 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
     Evaluator for pair classification task.
 
     Args:
-        dev_dataset (PairClassificationDataset): validation dataset
+        val_dataset (PairClassificationDataset): validation dataset
         test_dataset (PairClassificationDataset): test dataset
     """
 
     def __init__(
         self,
-        dev_dataset: PairClassificationDataset,
+        val_dataset: PairClassificationDataset,
         test_dataset: PairClassificationDataset,
     ) -> None:
         self.test_dataset = test_dataset
-        self.dev_dataset = dev_dataset
+        self.val_dataset = val_dataset
         self.metrics = [ThresholdAccuracyMetric(), ThresholdF1Metric()]
         self.main_metric = "binary_f1"
 
@@ -38,37 +38,37 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        dev_embeddings1, dev_embeddings2, dev_golden_labels = self._convert_to_embeddings(
-            model, self.dev_dataset, "dev", overwrite_cache, cache_dir
+        val_embeddings1, val_embeddings2, val_golden_labels = self._convert_to_embeddings(
+            model, self.val_dataset, "dev", overwrite_cache, cache_dir
         )
         test_embeddings1, test_embeddings2, test_golden_labels = self._convert_to_embeddings(
             model, self.test_dataset, "test", overwrite_cache, cache_dir
         )
 
-        dev_results = {}
+        val_results = {}
         test_results = {}
 
         for metric in self.metrics:
-            _dev_results = metric.evaluate(
-                embeddings1=dev_embeddings1,
-                embeddings2=dev_embeddings2,
-                golden=dev_golden_labels,
+            _val_results = metric.evaluate(
+                embeddings1=val_embeddings1,
+                embeddings2=val_embeddings2,
+                golden=val_golden_labels,
             )  # {dist_metric: {metric_name: score, metric_name_threshold: threshold}}
-            for k, v in _dev_results.items():
-                if k not in dev_results:
-                    dev_results[k] = v
+            for k, v in _val_results.items():
+                if k not in val_results:
+                    val_results[k] = v
                 else:
-                    dev_results[k].update(v)
+                    val_results[k].update(v)
 
-        sorted_dev_results = sorted(
-            dev_results.items(),
+        sorted_val_results = sorted(
+            val_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
         )
 
-        optimal_dist_metric = sorted_dev_results[0][0]
+        optimal_dist_metric = sorted_val_results[0][0]
         # keys = ["binary_f1", "binary_f1_threshold", "accuracy", "accuracy_threshold"]
-        optimal_thresholds = {k: v for k, v in sorted_dev_results[0][1].items() if k.endswith("_threshold")}
+        optimal_thresholds = {k: v for k, v in sorted_val_results[0][1].items() if k.endswith("_threshold")}
 
         for metric in self.metrics:
             _test_results = metric.evaluate(
@@ -89,7 +89,7 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
             metric_value=max([v[self.main_metric] for v in test_results.values()]),
             details={
                 "optimal_distance_metric": optimal_dist_metric,
-                "dev_scores": dev_results,
+                "val_scores": val_results,
                 "test_scores": test_results,
             },
         )

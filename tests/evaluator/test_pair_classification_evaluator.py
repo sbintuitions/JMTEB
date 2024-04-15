@@ -27,10 +27,10 @@ def test_pair_classification_binary(embedder):
     expected_distances = {"cosine_distances", "dot_similarities", "manhatten_distances", "euclidean_distances"}
 
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
+    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_distance_metric"}
     assert results.details["optimal_distance_metric"] in expected_distances
-    assert set(results.details["dev_scores"].keys()) == expected_distances
-    for value in results.details["dev_scores"].values():
+    assert set(results.details["val_scores"].keys()) == expected_distances
+    for value in results.details["val_scores"].values():
         assert set(value.keys()) == expected_metrics
     assert len(results.details["test_scores"].keys()) == 1
     assert list(results.details["test_scores"].keys())[0] in expected_distances

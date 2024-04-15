@@ -27,10 +27,10 @@ class ClusteringEvaluator(EmbeddingEvaluator):
 
     def __init__(
         self,
-        dev_dataset: ClusteringDataset,
+        val_dataset: ClusteringDataset,
         test_dataset: ClusteringDataset,
     ) -> None:
-        self.dev_dataset = dev_dataset
+        self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.main_metric = "v_measure_score"
 
@@ -41,12 +41,12 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
         logger.info("Converting validation data to embeddings...")
-        dev_embeddings = model.batch_encode_with_cache(
-            [item.text for item in self.dev_dataset],
-            cache_path=Path(cache_dir) / "dev_embeddings.bin" if cache_dir is not None else None,
+        val_embeddings = model.batch_encode_with_cache(
+            [item.text for item in self.val_dataset],
+            cache_path=Path(cache_dir) / "val_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
-        dev_labels = [item.label for item in self.dev_dataset]
+        val_labels = [item.label for item in self.val_dataset]
 
         logger.info("Converting test data to embeddings...")
         test_embeddings = model.batch_encode_with_cache(
@@ -68,9 +68,9 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         }
 
         logger.info("Fitting clustering model...")
-        dev_results = self._evaluate_clustering_models(dev_embeddings, dev_labels, clustering_models)
+        val_results = self._evaluate_clustering_models(val_embeddings, val_labels, clustering_models)
         optimal_clustering_model_name = sorted(
-            dev_results.items(),
+            val_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
         )[0][0]
@@ -86,7 +86,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             metric_value=test_results[optimal_clustering_model_name][self.main_metric],
             details={
                 "optimal_clustering_model_name": optimal_clustering_model_name,
-                "dev_scores": dev_results,
+                "val_scores": val_results,
                 "test_scores": test_results,
             },
         )

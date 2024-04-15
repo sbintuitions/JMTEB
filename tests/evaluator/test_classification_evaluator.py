@@ -32,18 +32,18 @@ def test_classification_evaluator(embedder):
     results = evaluator(model=embedder)
     expected_metrics = {"accuracy", "macro_f1"}
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_classifier_name"}
+    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_classifier_name"}
     assert results.details["optimal_classifier_name"] in {"logreg", "knn"}
-    assert set(results.details["dev_scores"].keys()) == {"logreg", "knn"}
+    assert set(results.details["val_scores"].keys()) == {"logreg", "knn"}
     assert list(results.details["test_scores"].keys()) in (["logreg"], ["knn"])
-    for score_splitname in ("dev_scores", "test_scores"):
+    for score_splitname in ("val_scores", "test_scores"):
         for value in results.details[score_splitname].values():
             assert set(value.keys()) == expected_metrics
 
 
 def test_classification_jsonl_dataset():
     dummy_jsonl_dataset = JsonlClassificationDataset(
-        filename="tests/test_data/dummy_classification/dev.jsonl",
+        filename="tests/test_data/dummy_classification/val.jsonl",
         text_key="sentence",
         label_key="label",
     )

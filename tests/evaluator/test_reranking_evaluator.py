@@ -37,7 +37,7 @@ class DummyQueryDataset(RerankingQueryDataset):
 
 def test_reranking_evaluator(embedder):
     evaluator = RerankingEvaluator(
-        dev_query_dataset=DummyQueryDataset(),
+        val_query_dataset=DummyQueryDataset(),
         test_query_dataset=DummyQueryDataset(),
         doc_dataset=DummyDocDataset(),
     )
@@ -45,11 +45,11 @@ def test_reranking_evaluator(embedder):
     expected_distance_metrics = {"cosine_similarity", "euclidean_distance", "dot_score"}
 
     assert results.metric_name == "ndcg@10"
-    assert set(results.details.keys()) == {"dev_scores", "test_scores", "optimal_distance_metric"}
+    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_distance_metric"}
     assert results.details["optimal_distance_metric"] in expected_distance_metrics
-    assert set(results.details["dev_scores"].keys()) == expected_distance_metrics
+    assert set(results.details["val_scores"].keys()) == expected_distance_metrics
     assert list(results.details["test_scores"].keys()) in [[sim] for sim in expected_distance_metrics]
-    for score_splitname in ("dev_scores", "test_scores"):
+    for score_splitname in ("val_scores", "test_scores"):
         for scores in results.details[score_splitname].values():
             for score in scores.keys():
                 assert any(score.startswith(metric) for metric in ["ndcg"])
@@ -57,7 +57,7 @@ def test_reranking_evaluator(embedder):
 
 def test_jsonl_reranking_datasets():
     query = JsonlRerankingQueryDataset(
-        filename="tests/test_data/dummy_reranking/dev.jsonl",
+        filename="tests/test_data/dummy_reranking/val.jsonl",
     )
     assert len(query) == 10
 
