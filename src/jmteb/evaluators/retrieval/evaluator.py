@@ -25,7 +25,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
     Evaluator for retrieval task.
 
     Args:
-        dev_query_dataset (RetrievalQueryDataset): validation dataset
+        val_query_dataset (RetrievalQueryDataset): validation dataset
         test_query_dataset (RetrievalQueryDataset): query dataset
         doc_dataset (RetrievalDocDataset): document dataset
         doc_chunk_size (int): The maximum size of corpus chunk. Smaller chunk requires less memory but lowers speed.
@@ -35,14 +35,14 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
     def __init__(
         self,
-        dev_query_dataset: RetrievalQueryDataset,
+        val_query_dataset: RetrievalQueryDataset,
         test_query_dataset: RetrievalQueryDataset,
         doc_dataset: RetrievalDocDataset,
         doc_chunk_size: int = 1000000,
         accuracy_at_k: list[int] | None = None,
         ndcg_at_k: list[int] | None = None,
     ) -> None:
-        self.dev_query_dataset = dev_query_dataset
+        self.val_query_dataset = val_query_dataset
         self.test_query_dataset = test_query_dataset
         self.doc_dataset = doc_dataset
 
@@ -68,10 +68,10 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             overwrite_cache=overwrite_cache,
         )
 
-        if self.dev_query_dataset:
-            dev_query_embeddings = model.batch_encode_with_cache(
-                text_list=[item.query for item in self.dev_query_dataset],
-                cache_path=Path(cache_dir) / "dev_query.bin" if cache_dir is not None else None,
+        if self.val_query_dataset:
+            val_query_embeddings = model.batch_encode_with_cache(
+                text_list=[item.query for item in self.val_query_dataset],
+                cache_path=Path(cache_dir) / "val_query.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
             )
 
@@ -89,14 +89,14 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
-        dev_results = self._compute_scores(
-            query_dataset=self.dev_query_dataset,
-            query_embeddings=dev_query_embeddings,
+        val_results = self._compute_scores(
+            query_dataset=self.val_query_dataset,
+            query_embeddings=val_query_embeddings,
             doc_embeddings=doc_embeddings,
             dist_metrics=dist_metrics,
         )
-        sorted_dev_results = sorted(dev_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
-        optimal_dist_metric = sorted_dev_results[0][0]
+        sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
+        optimal_dist_metric = sorted_val_results[0][0]
 
         test_results = self._compute_scores(
             query_dataset=self.test_query_dataset,
@@ -110,7 +110,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             metric_value=test_results[optimal_dist_metric][self.main_metric],
             details={
                 "optimal_distance_metric": optimal_dist_metric,
-                "dev_scores": dev_results,
+                "val_scores": val_results,
                 "test_scores": test_results,
             },
         )

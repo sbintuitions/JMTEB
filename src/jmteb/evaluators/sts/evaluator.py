@@ -20,12 +20,12 @@ class STSEvaluator(EmbeddingEvaluator):
     Evaluator for STS task.
 
     Args:
-        dev_dataset (STSDataset): dev dataset for hyperparameter tuning
+        val_dataset (STSDataset): dev dataset for hyperparameter tuning
         test_dataset (STSDataset): test dataset
     """
 
-    def __init__(self, dev_dataset: STSDataset, test_dataset: STSDataset) -> None:
-        self.dev_dataset = dev_dataset
+    def __init__(self, val_dataset: STSDataset, test_dataset: STSDataset) -> None:
+        self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.main_metric = "spearman"
 
@@ -35,14 +35,14 @@ class STSEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        dev_embeddings1, dev_embeddings2, dev_golden_scores = self._convert_to_embeddings(
-            model, self.dev_dataset, "dev", overwrite_cache, cache_dir
+        val_embeddings1, val_embeddings2, val_golden_scores = self._convert_to_embeddings(
+            model, self.val_dataset, "dev", overwrite_cache, cache_dir
         )
         test_embeddings1, test_embeddings2, test_golden_scores = self._convert_to_embeddings(
             model, self.test_dataset, "test", overwrite_cache, cache_dir
         )
 
-        dev_results = {}
+        val_results = {}
         test_results = {}
 
         similarity_metrics = {
@@ -52,11 +52,11 @@ class STSEvaluator(EmbeddingEvaluator):
             "dot_score": PairwiseSimilarities.dot_score,
         }
 
-        dev_results = self._compute_similarity_scores(
-            dev_embeddings1, dev_embeddings2, dev_golden_scores, similarity_metrics
+        val_results = self._compute_similarity_scores(
+            val_embeddings1, val_embeddings2, val_golden_scores, similarity_metrics
         )
         optimal_similarity_metric = sorted(
-            dev_results.items(),
+            val_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
         )[0][0]
@@ -72,7 +72,7 @@ class STSEvaluator(EmbeddingEvaluator):
             metric_value=test_results[optimal_similarity_metric][self.main_metric],
             details={
                 "optimal_similarity_metric": optimal_similarity_metric,
-                "dev_scores": dev_results,
+                "val_scores": val_results,
                 "test_scores": test_results,
             },
         )
