@@ -28,7 +28,13 @@ class MockEmbedding:
 
 
 class MockOpenAIClientEmbedding:
-    def create(input: str | list[str], model: str, dimensions: int):
+    def create(input: str | list[str], model: str, **kwargs):
+        if model == "text-embedding-ada-002":
+            assert "dimensions" not in kwargs
+            dimensions = OUTPUT_DIM
+        else:
+            assert "dimensions" in kwargs
+            dimensions = kwargs.get("dimensions")
         if isinstance(input, str):
             input = [input]
         return MockData(data=[MockEmbedding(embedding=[0.1] * dimensions)] * len(input))
@@ -61,6 +67,18 @@ class TestOpenAIEmbedder:
     def test_model_dim(self):
         assert OpenAIEmbedder(model="text-embedding-3-large").dim == 3072
         assert OpenAIEmbedder(model="text-embedding-ada-002").dim == 1536
+
+    def test_ada_002_dim(self):
+        # check that no `dimensions` argument is set for model "text-embedding-ada-002"
+        #   else an assertion error will be raised in MockOpenAIClientEmbedding
+        #   and model "text-embedding-ada-002" has a fixed output dimension
+        embeddings = OpenAIEmbedder(model="text-embedding-ada-002", dim=2 * OUTPUT_DIM).encode("任意のテキスト")
+        assert isinstance(embeddings, np.ndarray)
+        assert embeddings.shape == (OUTPUT_DIM,)
+
+        embeddings = OpenAIEmbedder(model="text-embedding-ada-002", dim=OUTPUT_DIM // 2).encode("任意のテキスト")
+        assert isinstance(embeddings, np.ndarray)
+        assert embeddings.shape == (OUTPUT_DIM,)
 
     def test_dim_over_max(self):
         assert OpenAIEmbedder(dim=2 * OUTPUT_DIM).dim == OUTPUT_DIM

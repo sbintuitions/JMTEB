@@ -33,7 +33,7 @@ class OpenAIEmbedder(TextEmbedder):
         self.client = OpenAI()  # API key written in .env
         assert model in MODEL_DIM.keys(), f"`model` must be one of {list(MODEL_DIM.keys())}!"
         self.model = model
-        if not dim:
+        if not dim or model == "text-embedding-ada-002":
             self.dim = MODEL_DIM[self.model]
         else:
             if dim > MODEL_DIM[self.model]:
@@ -43,13 +43,15 @@ class OpenAIEmbedder(TextEmbedder):
                 self.dim = dim
 
     def encode(self, text: str | list[str]) -> np.ndarray:
+        kwargs = {"dimensions": self.dim} if self.model != "text-embedding-ada-002" else {}
+        # specifying `dimensions` is not allowed for "text-embedding-ada-002"
         result = np.asarray(
             [
                 data.embedding
                 for data in self.client.embeddings.create(
                     input=text,
                     model=self.model,
-                    dimensions=self.dim,
+                    **kwargs,
                 ).data
             ]
         )
