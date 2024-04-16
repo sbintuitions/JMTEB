@@ -90,9 +90,8 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             classifier.fit(X_train, y_train)
             logger.info("Evaluating...")
 
-            if self.val_dataset:
-                y_val_pred = classifier.predict(X_val)
-                val_results[classifier_name] = self._compute_metrics(y_val_pred, y_val, self.average)
+            y_val_pred = classifier.predict(X_val)
+            val_results[classifier_name] = self._compute_metrics(y_val_pred, y_val, self.average)
 
         sorted_val_results = sorted(
             val_results.items(),
