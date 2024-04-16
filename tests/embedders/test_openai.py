@@ -33,7 +33,8 @@ class MockOpenAIClientEmbedding:
             assert "dimensions" not in kwargs
             dimensions = OUTPUT_DIM
         else:
-            dimensions = kwargs.get("dimensions", OUTPUT_DIM)
+            assert "dimensions" in kwargs
+            dimensions = kwargs.get("dimensions")
         if isinstance(input, str):
             input = [input]
         return MockData(data=[MockEmbedding(embedding=[0.1] * dimensions)] * len(input))
