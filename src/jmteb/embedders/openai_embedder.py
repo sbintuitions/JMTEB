@@ -33,7 +33,7 @@ class OpenAIEmbedder(TextEmbedder):
         self.client = OpenAI()  # API key written in .env
         assert model in MODEL_DIM.keys(), f"`model` must be one of {list(MODEL_DIM.keys())}!"
         self.model = model
-        if not dim:
+        if not dim or model == "text-embedding-ada-002":
             self.dim = MODEL_DIM[self.model]
         else:
             if dim > MODEL_DIM[self.model]:
