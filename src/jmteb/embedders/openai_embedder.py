@@ -43,13 +43,15 @@ class OpenAIEmbedder(TextEmbedder):
                 self.dim = dim
 
     def encode(self, text: str | list[str]) -> np.ndarray:
+        kwargs = {"dimensions": self.dim} if self.model != "text-embedding-ada-002" else {}
+        # specifying `dimensions` is not allowed for "text-embedding-ada-002"
         result = np.asarray(
             [
                 data.embedding
                 for data in self.client.embeddings.create(
                     input=text,
                     model=self.model,
-                    dimensions=self.dim,
+                    **kwargs,
                 ).data
             ]
         )
