@@ -100,8 +100,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
     def _evaluate_clustering_model(
         embeddings: np.ndarray, y_true: list[int], clustering_model: ClusterMixin
     ) -> dict[str, float]:
-        clustering_model.fit(embeddings)
-        y_pred = clustering_model.labels_
+        y_pred = clustering_model.fit_predict(embeddings)
         h_score, c_score, v_score = homogeneity_completeness_v_measure(
             labels_pred=y_pred, labels_true=np.array(y_true)
         )
