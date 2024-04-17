@@ -98,7 +98,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
 
     @staticmethod
     def _evaluate_clustering_model(
-        embeddings: np.ndarray, y_true: list, clustering_model: ClusterMixin
+        embeddings: np.ndarray, y_true: list[int], clustering_model: ClusterMixin
     ) -> dict[str, float]:
         clustering_model.fit(embeddings)
         y_pred = clustering_model.labels_
