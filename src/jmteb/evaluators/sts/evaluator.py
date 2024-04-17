@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import torch
@@ -89,7 +90,7 @@ class STSEvaluator(EmbeddingEvaluator):
 
     @staticmethod
     def _compute_similarity(
-        embeddings1: Tensor, embeddings2: Tensor, golden_scores: list, similarity_func: callable
+        embeddings1: Tensor, embeddings2: Tensor, golden_scores: list, similarity_func: Callable
     ) -> dict[str, float]:
         test_sim_score = similarity_func(embeddings1, embeddings2).cpu()
         return {

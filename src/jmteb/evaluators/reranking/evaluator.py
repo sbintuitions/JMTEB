@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import TypeVar
+from typing import Callable, TypeVar
 
 import numpy as np
 import torch
@@ -73,7 +73,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         logger.info("Start reranking")
 
-        dist_functions: dict[str, callable[[Tensor, Tensor], Tensor]] = {
+        dist_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = {
             "cosine_similarity": Similarities.cosine_similarity,
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
@@ -114,7 +114,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
         query_dataset: RerankingQueryDataset,
         query_embeddings: np.ndarray,
         doc_embeddings: np.ndarray,
-        dist_func: callable[[Tensor, Tensor], Tensor],
+        dist_func: Callable[[Tensor, Tensor], Tensor],
     ) -> dict[str, float]:
         doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
 

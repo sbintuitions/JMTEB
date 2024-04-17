@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from os import PathLike
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 from loguru import logger
@@ -61,7 +62,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             test_labels = [item.label for item in self.test_dataset]
 
         n_clusters = len(set(test_labels))
-        model_constructors: dict[str, callable[[], ClusterMixin]] = {
+        model_constructors: dict[str, Callable[[], ClusterMixin]] = {
             "MiniBatchKMeans": lambda: MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
             "AgglomerativeClustering": lambda: AgglomerativeClustering(n_clusters=n_clusters),
             "BisectingKMeans": lambda: BisectingKMeans(n_clusters=n_clusters),
