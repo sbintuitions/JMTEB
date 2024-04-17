@@ -103,8 +103,8 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         )
 
     @staticmethod
-    def _evaluate_clustering_model(embeddings: np.ndarray, y_true: list, clustering_model: Any) -> dict[str, float]:
-        clustering_model_ = deepcopy(clustering_model)
+    def _evaluate_clustering_model(embeddings: np.ndarray, y_true: list, model_constructor: Callable[[], ClusteringModel]) -> dict[str, float]:
+        clustering_model_ = model_constructor()
         clustering_model_.fit(embeddings)
         y_pred = clustering_model_.labels_
         h_score, c_score, v_score = homogeneity_completeness_v_measure(
