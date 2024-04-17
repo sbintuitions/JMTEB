@@ -2,7 +2,15 @@
   mrtydi: {
     class_path: 'RetrievalEvaluator',
     init_args: {
-      query_dataset: {
+      val_query_dataset: {
+        class_path: 'HfRetrievalQueryDataset',
+        init_args: {
+          path: 'sbintuitions/JMTEB',
+          split: 'validation',
+          name: 'mrtydi-query',
+        },
+      },
+      test_query_dataset: {
         class_path: 'HfRetrievalQueryDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',

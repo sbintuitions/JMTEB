@@ -2,7 +2,15 @@
   mewsc16: {
     class_path: 'ClusteringEvaluator',
     init_args: {
-      dataset: {
+      val_dataset: {
+        class_path: 'HfClusteringDataset',
+        init_args: {
+          path: 'sbintuitions/JMTEB',
+          split: 'validation',
+          name: 'mewsc16_ja',
+        },
+      },
+      test_dataset: {
         class_path: 'HfClusteringDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',

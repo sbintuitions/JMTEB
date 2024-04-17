@@ -25,7 +25,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
     Evaluator for retrieval task.
 
     Args:
-        query_dataset (RetrievalQueryDataset): query dataset
+        val_query_dataset (RetrievalQueryDataset): validation dataset
+        test_query_dataset (RetrievalQueryDataset): query dataset
         doc_dataset (RetrievalDocDataset): document dataset
         doc_chunk_size (int): The maximum size of corpus chunk. Smaller chunk requires less memory but lowers speed.
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
@@ -34,13 +35,15 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
     def __init__(
         self,
-        query_dataset: RetrievalQueryDataset,
+        val_query_dataset: RetrievalQueryDataset,
+        test_query_dataset: RetrievalQueryDataset,
         doc_dataset: RetrievalDocDataset,
         doc_chunk_size: int = 1000000,
         accuracy_at_k: list[int] | None = None,
         ndcg_at_k: list[int] | None = None,
     ) -> None:
-        self.query_dataset = query_dataset
+        self.val_query_dataset = val_query_dataset
+        self.test_query_dataset = test_query_dataset
         self.doc_dataset = doc_dataset
 
         self.doc_chunk_size = doc_chunk_size
@@ -59,11 +62,19 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        query_embeddings = model.batch_encode_with_cache(
-            text_list=[item.query for item in self.query_dataset],
-            cache_path=Path(cache_dir) / "query.bin" if cache_dir is not None else None,
+        val_query_embeddings = model.batch_encode_with_cache(
+            text_list=[item.query for item in self.val_query_dataset],
+            cache_path=Path(cache_dir) / "val_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
+        if self.val_query_dataset == self.test_query_dataset:
+            test_query_embeddings = val_query_embeddings
+        else:
+            test_query_embeddings = model.batch_encode_with_cache(
+                text_list=[item.query for item in self.test_query_dataset],
+                cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
+                overwrite_cache=overwrite_cache,
+            )
 
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
@@ -72,63 +83,92 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         )
 
         logger.info("Start retrieval")
-        results: dict[str, dict[str, float]] = {}
 
-        dist_metrics: dict[str, Callable] = {
+        dist_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = {
             "cosine_similarity": Similarities.cosine_similarity,
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
-        for dist_metric, dist_func in dist_metrics.items():
-            dist_scores: dict[str, float] = {}
+        val_results = {}
+        for dist_name, dist_func in dist_functions.items():
+            val_results[dist_name] = self._compute_metrics(
+                query_dataset=self.val_query_dataset,
+                query_embeddings=val_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_func,
+            )
+        sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
+        optimal_dist_name = sorted_val_results[0][0]
 
-            with tqdm.tqdm(total=len(doc_embeddings), desc="Retrieval doc chunks") as pbar:
-                top_k_indices_chunks: list[np.ndarray] = []
-                top_k_scores_chunks: list[np.ndarray] = []
-                for offset in range(0, len(doc_embeddings), self.doc_chunk_size):
-                    doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
-
-                    device = "cuda" if torch.cuda.is_available() else "cpu"
-                    query_embeddings = convert_to_tensor(query_embeddings, device=device)
-                    doc_embeddings_chunk = convert_to_tensor(doc_embeddings_chunk, device=device)
-                    similarity = dist_func(query_embeddings, doc_embeddings_chunk)
-
-                    top_k = min(self.max_top_k, similarity.shape[1])  # in case the corpus is smaller than max_top_k
-                    top_k_scores, top_k_indices = torch.topk(
-                        similarity,
-                        k=top_k,
-                        dim=1,
-                    )
-
-                    top_k_indices_chunks.append(top_k_indices + offset)
-                    top_k_scores_chunks.append(top_k_scores)
-
-                    pbar.update(len(doc_embeddings_chunk))
-
-            top_k_indices = torch.cat(top_k_indices_chunks, axis=1)
-            top_k_scores = torch.cat(top_k_scores_chunks, axis=1)
-
-            top_k = min(self.max_top_k, top_k_indices.shape[0])
-            sorting_indices_for_top_k = torch.argsort(-top_k_scores, axis=1)[:, :top_k]
-            sorted_top_k_indices = torch.take_along_dim(top_k_indices, sorting_indices_for_top_k, axis=1).tolist()
-
-            golden_doc_ids = [item.relevant_docs for item in self.query_dataset]
-            retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
-
-            for k in self.accuracy_at_k:
-                dist_scores[f"accuracy@{k}"] = accuracy_at_k(golden_doc_ids, retrieved_doc_ids, k)
-            for k in self.ndcg_at_k:
-                dist_scores[f"ndcg@{k}"] = ndcg_at_k(golden_doc_ids, retrieved_doc_ids, k)
-            dist_scores[f"mrr@{self.max_top_k}"] = mrr_at_k(golden_doc_ids, retrieved_doc_ids, self.max_top_k)
-
-            results[dist_metric] = dist_scores
+        test_results = {
+            optimal_dist_name: self._compute_metrics(
+                query_dataset=self.test_query_dataset,
+                query_embeddings=test_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_functions[optimal_dist_name],
+            )
+        }
 
         return EvaluationResults(
             metric_name=self.main_metric,
-            metric_value=max([v[self.main_metric] for v in results.values()]),
-            details=results,
+            metric_value=test_results[optimal_dist_name][self.main_metric],
+            details={
+                "optimal_distance_metric": optimal_dist_name,
+                "val_scores": val_results,
+                "test_scores": test_results,
+            },
         )
+
+    def _compute_metrics(
+        self,
+        query_dataset: RetrievalQueryDataset,
+        query_embeddings: np.ndarray,
+        doc_embeddings: np.ndarray,
+        dist_func: Callable[[Tensor, Tensor], Tensor],
+    ) -> dict[str, dict[str, float]]:
+        results: dict[str, float] = {}
+
+        with tqdm.tqdm(total=len(doc_embeddings), desc="Retrieval doc chunks") as pbar:
+            top_k_indices_chunks: list[np.ndarray] = []
+            top_k_scores_chunks: list[np.ndarray] = []
+            for offset in range(0, len(doc_embeddings), self.doc_chunk_size):
+                doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
+
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                query_embeddings = convert_to_tensor(query_embeddings, device=device)
+                doc_embeddings_chunk = convert_to_tensor(doc_embeddings_chunk, device=device)
+                similarity = dist_func(query_embeddings, doc_embeddings_chunk)
+
+                top_k = min(self.max_top_k, similarity.shape[1])  # in case the corpus is smaller than max_top_k
+                top_k_scores, top_k_indices = torch.topk(
+                    similarity,
+                    k=top_k,
+                    dim=1,
+                )
+
+                top_k_indices_chunks.append(top_k_indices + offset)
+                top_k_scores_chunks.append(top_k_scores)
+
+                pbar.update(len(doc_embeddings_chunk))
+
+        top_k_indices = torch.cat(top_k_indices_chunks, axis=1)
+        top_k_scores = torch.cat(top_k_scores_chunks, axis=1)
+
+        top_k = min(self.max_top_k, top_k_indices.shape[0])
+        sorting_indices_for_top_k = torch.argsort(-top_k_scores, axis=1)[:, :top_k]
+        sorted_top_k_indices = torch.take_along_dim(top_k_indices, sorting_indices_for_top_k, axis=1).tolist()
+
+        golden_doc_ids = [item.relevant_docs for item in query_dataset]
+        retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
+
+        for k in self.accuracy_at_k:
+            results[f"accuracy@{k}"] = accuracy_at_k(golden_doc_ids, retrieved_doc_ids, k)
+        for k in self.ndcg_at_k:
+            results[f"ndcg@{k}"] = ndcg_at_k(golden_doc_ids, retrieved_doc_ids, k)
+        results[f"mrr@{self.max_top_k}"] = mrr_at_k(golden_doc_ids, retrieved_doc_ids, self.max_top_k)
+
+        return results
 
 
 def accuracy_at_k(relevant_docs: list[list[T]], top_hits: list[list[T]], k: int) -> float:

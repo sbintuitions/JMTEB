@@ -2,7 +2,15 @@
   esci: {
     class_path: 'RerankingEvaluator',
     init_args: {
-      query_dataset: {
+      val_query_dataset: {
+        class_path: 'HfRerankingQueryDataset',
+        init_args: {
+          path: 'sbintuitions/JMTEB',
+          split: 'validation',
+          name: 'esci-query',
+        },
+      },
+      test_query_dataset: {
         class_path: 'HfRerankingQueryDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',

@@ -10,6 +10,14 @@
           name: 'amazon_counterfactual_classification',
         },
       },
+      val_dataset: {
+        class_path: 'HfClassificationDataset',
+        init_args: {
+          path: 'sbintuitions/JMTEB',
+          split: 'validation',
+          name: 'amazon_counterfactual_classification',
+        },
+      },
       test_dataset: {
         class_path: 'HfClassificationDataset',
         init_args: {

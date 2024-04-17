@@ -23,6 +23,9 @@ class PairClassificationDataset(ABC):
     def __getitem__(self, idx) -> PairClassificationInstance:
         pass
 
+    def __eq__(self, __value: object) -> bool:
+        return False
+
 
 class HfPairClassificationDataset(PairClassificationDataset):
     def __init__(
@@ -35,6 +38,9 @@ class HfPairClassificationDataset(PairClassificationDataset):
         label_key: str = "label",
     ):
         logger.info(f"Loading dataset {path} (name={name}) with split {split}")
+        self.path = path
+        self.split = split
+        self.name = name
         self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.sentence1_key = sentence1_key
         self.sentence2_key = sentence2_key
@@ -54,6 +60,15 @@ class HfPairClassificationDataset(PairClassificationDataset):
             label=self.dataset[idx][self.label_key],
         )
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        for attribute in ("path", "split", "name", "sentence1_key", "sentence2_key", "label_key"):
+            if getattr(self, attribute, None) != getattr(other, attribute, None):
+                return False
+        return True
+
 
 class JsonlPairClassificationDataset(PairClassificationDataset):
     def __init__(
@@ -64,6 +79,7 @@ class JsonlPairClassificationDataset(PairClassificationDataset):
         label_key: str = "label",
     ) -> None:
         logger.info(f"Loading dataset from {filename}")
+        self.filename = filename
         self.dataset: datasets.Dataset = datasets.load_dataset("json", data_files=filename)["train"]
         self.sentence1_key = sentence1_key
         self.sentence2_key = sentence2_key
@@ -82,3 +98,12 @@ class JsonlPairClassificationDataset(PairClassificationDataset):
             sentence2=self.dataset[idx][self.sentence2_key],
             label=self.dataset[idx][self.label_key],
         )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        for attribute in ("filename", "sentence1_key", "sentence2_key", "label_key"):
+            if getattr(self, attribute, None) != getattr(other, attribute, None):
+                return False
+        return True

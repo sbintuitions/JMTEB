@@ -7,6 +7,8 @@ from jmteb.evaluators.classification import (
 )
 from jmteb.evaluators.classification.data import JsonlClassificationDataset
 
+EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_classifier_name"}
+
 
 class DummyClassificationDataset(ClassificationDataset):
     def __init__(self):
@@ -22,6 +24,7 @@ class DummyClassificationDataset(ClassificationDataset):
 def test_classification_evaluator(embedder):
     evaluator = ClassificationEvaluator(
         train_dataset=DummyClassificationDataset(),
+        val_dataset=DummyClassificationDataset(),
         test_dataset=DummyClassificationDataset(),
         classifiers={
             "logreg": LogRegClassifier(),
@@ -31,15 +34,35 @@ def test_classification_evaluator(embedder):
     results = evaluator(model=embedder)
     expected_metrics = {"accuracy", "macro_f1"}
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"logreg", "knn"}
-    for value in results.details.values():
-        assert set(value.keys()) == expected_metrics
+    assert set(results.details.keys()) == EXPECTED_OUTPUT_DICT_KEYS
+    assert results.details["optimal_classifier_name"] in {"logreg", "knn"}
+    assert set(results.details["val_scores"].keys()) == {"logreg", "knn"}
+    assert list(results.details["test_scores"].keys()) in (["logreg"], ["knn"])
+    for score_splitname in ("val_scores", "test_scores"):
+        for value in results.details[score_splitname].values():
+            assert set(value.keys()) == expected_metrics
 
 
 def test_classification_jsonl_dataset():
     dummy_jsonl_dataset = JsonlClassificationDataset(
-        filename="tests/test_data/dummy_classification/dev.jsonl",
+        filename="tests/test_data/dummy_classification/val.jsonl",
         text_key="sentence",
         label_key="label",
     )
     assert len(dummy_jsonl_dataset) == 10
+
+
+def test_classification_jsonl_dataset_equal():
+    dummy_jsonl_dataset_1 = JsonlClassificationDataset(
+        filename="tests/test_data/dummy_classification/val.jsonl",
+        text_key="sentence",
+        label_key="label",
+    )
+    dummy_jsonl_dataset_2 = JsonlClassificationDataset(
+        filename="tests/test_data/dummy_classification/val.jsonl",
+        text_key="sentence",
+        label_key="label",
+    )
+    assert dummy_jsonl_dataset_1 == dummy_jsonl_dataset_2
+    dummy_jsonl_dataset_2.label_key = "LABEL"
+    assert dummy_jsonl_dataset_1 != dummy_jsonl_dataset_2

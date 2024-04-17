@@ -24,18 +24,21 @@ class RerankingEvaluator(EmbeddingEvaluator):
     Evaluator for reranking task.
 
     Args:
-        query_dataset (RerankingQueryDataset): query dataset
+        val_query_dataset (RerankingQueryDataset): validation query dataset used for hyperparameter tuning
+        test_query_dataset (RerankingQueryDataset): test query dataset used for computing the scores
         doc_dataset (RerankingDocDataset): document dataset
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
     """
 
     def __init__(
         self,
-        query_dataset: RerankingQueryDataset,
+        val_query_dataset: RerankingQueryDataset,
+        test_query_dataset: RerankingQueryDataset,
         doc_dataset: RerankingDocDataset,
         ndcg_at_k: list[int] | None = None,
     ) -> None:
-        self.query_dataset = query_dataset
+        self.test_query_dataset = test_query_dataset
+        self.val_query_dataset = val_query_dataset
         self.doc_dataset = doc_dataset
         self.ndcg_at_k = ndcg_at_k or [10, 20, 40]
         self.main_metric = f"ndcg@{self.ndcg_at_k[0]}"
@@ -49,67 +52,101 @@ class RerankingEvaluator(EmbeddingEvaluator):
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        query_embeddings = model.batch_encode_with_cache(
-            text_list=[item.query for item in self.query_dataset],
-            cache_path=Path(cache_dir) / "query.bin" if cache_dir is not None else None,
+        val_query_embeddings = model.batch_encode_with_cache(
+            text_list=[item.query for item in self.val_query_dataset],
+            cache_path=Path(cache_dir) / "val_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
-
+        if self.val_query_dataset == self.test_query_dataset:
+            test_query_embeddings = val_query_embeddings
+        else:
+            test_query_embeddings = model.batch_encode_with_cache(
+                text_list=[item.query for item in self.test_query_dataset],
+                cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
+                overwrite_cache=overwrite_cache,
+            )
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
 
-        doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
-
         logger.info("Start reranking")
-        results: dict[str, dict[str, float]] = {}
 
-        dist_metrics: dict[str, Callable] = {
+        dist_functions: dict[str, Callable[[Tensor, Tensor], Tensor]] = {
             "cosine_similarity": Similarities.cosine_similarity,
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
-        for dist_metric, dist_func in dist_metrics.items():
-            dist_scores: dict[str, float] = {}
+        val_results = {}
+        for dist_name, dist_func in dist_functions.items():
+            val_results[dist_name] = self._compute_metrics(
+                query_dataset=self.val_query_dataset,
+                query_embeddings=val_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_func,
+            )
 
-            with tqdm.tqdm(total=len(self.query_dataset), desc="Reranking docs") as pbar:
-                device = "cuda" if torch.cuda.is_available() else "cpu"
-                reranked_docs_list = []
-                for i, item in enumerate(self.query_dataset):
-                    query_embedding = convert_to_tensor(query_embeddings[i], device=device)
-                    doc_embedding = convert_to_tensor(
-                        np.array(
-                            [doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]
-                        ),
-                        device=device,
-                    )
-                    similarity = dist_func(query_embedding, doc_embedding)
-
-                    argsorted_indices = torch.argsort(
-                        similarity,
-                        dim=1,
-                        descending=True,
-                    )[0]
-                    reranked_docs = [item.retrieved_docs[argsorted_indice] for argsorted_indice in argsorted_indices]
-                    reranked_docs_list.append(reranked_docs)
-                    pbar.update(i)
-
-            retrieved_docs_list = [item.retrieved_docs for item in self.query_dataset]
-            relevance_scores_list = [item.relevance_scores for item in self.query_dataset]
-
-            for k in self.ndcg_at_k:
-                dist_scores[f"ndcg@{k}"] = ndcg_at_k(retrieved_docs_list, relevance_scores_list, reranked_docs_list, k)
-
-            results[dist_metric] = dist_scores
+        sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
+        optimal_dist_name = sorted_val_results[0][0]
+        test_results = {
+            optimal_dist_name: self._compute_metrics(
+                query_dataset=self.test_query_dataset,
+                query_embeddings=test_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_functions[optimal_dist_name],
+            )
+        }
 
         return EvaluationResults(
             metric_name=self.main_metric,
-            metric_value=max([v[self.main_metric] for v in results.values()]),
-            details=results,
+            metric_value=test_results[optimal_dist_name][self.main_metric],
+            details={
+                "optimal_distance_metric": optimal_dist_name,
+                "val_scores": val_results,
+                "test_scores": test_results,
+            },
         )
+
+    def _compute_metrics(
+        self,
+        query_dataset: RerankingQueryDataset,
+        query_embeddings: np.ndarray,
+        doc_embeddings: np.ndarray,
+        dist_func: Callable[[Tensor, Tensor], Tensor],
+    ) -> dict[str, float]:
+        doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
+
+        results: dict[str, float] = {}
+
+        with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            reranked_docs_list = []
+            for i, item in enumerate(query_dataset):
+                query_embedding = convert_to_tensor(query_embeddings[i], device=device)
+                doc_embedding = convert_to_tensor(
+                    np.array([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]),
+                    device=device,
+                )
+                similarity = dist_func(query_embedding, doc_embedding)
+
+                argsorted_indices = torch.argsort(
+                    similarity,
+                    dim=1,
+                    descending=True,
+                )[0]
+                reranked_docs = [item.retrieved_docs[argsorted_indice] for argsorted_indice in argsorted_indices]
+                reranked_docs_list.append(reranked_docs)
+                pbar.update(i)
+
+        retrieved_docs_list = [item.retrieved_docs for item in query_dataset]
+        relevance_scores_list = [item.relevance_scores for item in query_dataset]
+
+        for k in self.ndcg_at_k:
+            results[f"ndcg@{k}"] = ndcg_at_k(retrieved_docs_list, relevance_scores_list, reranked_docs_list, k)
+
+        return results
 
 
 def ndcg_at_k(

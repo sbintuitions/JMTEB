@@ -30,6 +30,9 @@ class RetrievalQueryDataset(ABC):
     def __getitem__(self, idx) -> RetrievalQuery:
         pass
 
+    def __eq__(self, __value: object) -> bool:
+        return False
+
 
 class RetrievalDocDataset(ABC):
     @abstractmethod
@@ -39,6 +42,9 @@ class RetrievalDocDataset(ABC):
     @abstractmethod
     def __getitem__(self, idx) -> RetrievalDoc:
         pass
+
+    def __eq__(self, __value: object) -> bool:
+        return False
 
 
 class HfRetrievalQueryDataset(RetrievalQueryDataset):
@@ -50,6 +56,9 @@ class HfRetrievalQueryDataset(RetrievalQueryDataset):
         query_key: str = "query",
         relevant_docs_key: str = "relevant_docs",
     ):
+        self.path = path
+        self.split = split
+        self.name = name
         self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.query_key = query_key
         self.relevant_docs_key = relevant_docs_key
@@ -64,6 +73,15 @@ class HfRetrievalQueryDataset(RetrievalQueryDataset):
 
         return RetrievalQuery(query=self.dataset[idx][self.query_key], relevant_docs=relevant_docs)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        for attribute in ("path", "split", "name", "query_key", "retrieved_docs_key"):
+            if getattr(self, attribute, None) != getattr(other, attribute, None):
+                return False
+        return True
+
 
 class JsonlRetrievalQueryDataset(RetrievalQueryDataset):
     def __init__(
@@ -72,6 +90,7 @@ class JsonlRetrievalQueryDataset(RetrievalQueryDataset):
         query_key: str = "query",
         relevant_docs_key: str = "relevant_docs",
     ):
+        self.filename = filename
         self.dataset: datasets.Dataset = datasets.load_dataset("json", data_files=filename)["train"]
         self.query_key = query_key
         self.relevant_docs_key = relevant_docs_key
@@ -86,10 +105,22 @@ class JsonlRetrievalQueryDataset(RetrievalQueryDataset):
 
         return RetrievalQuery(query=self.dataset[idx][self.query_key], relevant_docs=relevant_docs)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        for attribute in ("filename", "query_key", "relevant_docs_key"):
+            if getattr(self, attribute, None) != getattr(other, attribute, None):
+                return False
+        return True
+
 
 class HfRetrievalDocDataset(RetrievalDocDataset):
     def __init__(self, path: str, split: str, name: str | None = None, id_key: str = "docid", text_key: str = "text"):
         logger.info(f"Loading dataset {path} (name={name}) with split {split}")
+        self.path = path
+        self.split = split
+        self.name = name
         self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.id_key = id_key
         self.text_key = text_key
@@ -100,10 +131,20 @@ class HfRetrievalDocDataset(RetrievalDocDataset):
     def __getitem__(self, idx) -> RetrievalDoc:
         return RetrievalDoc(id=self.dataset[idx][self.id_key], text=self.dataset[idx][self.text_key])
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        for attribute in ("path", "split", "name", "id_key", "text_key"):
+            if getattr(self, attribute, None) != getattr(other, attribute, None):
+                return False
+        return True
+
 
 class JsonlRetrievalDocDataset(RetrievalDocDataset):
     def __init__(self, filename: str, id_key: str = "docid", text_key: str = "text"):
         logger.info(f"Loading dataset from {filename}")
+        self.filename = filename
         with smart_open.open(filename, "r", encoding="utf-8", errors="ignore") as fin:
             corpus = [json.loads(line.strip()) for line in fin.readlines()]
         self.dataset = corpus
@@ -115,3 +156,12 @@ class JsonlRetrievalDocDataset(RetrievalDocDataset):
 
     def __getitem__(self, idx) -> RetrievalDoc:
         return RetrievalDoc(id=self.dataset[idx][self.id_key], text=self.dataset[idx][self.text_key].strip())
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        for attribute in ("filename", "id_key", "text_key"):
+            if getattr(self, attribute, None) != getattr(other, attribute, None):
+                return False
+        return True
