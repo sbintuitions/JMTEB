@@ -6,7 +6,7 @@
         class_path: 'HfSTSDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',
-          split: 'train',
+          split: 'validation',
           name: 'jsick',
         },
       },

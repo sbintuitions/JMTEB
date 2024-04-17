@@ -6,7 +6,7 @@
         class_path: 'HfRetrievalQueryDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',
-          split: 'test',
+          split: 'validation',
           name: 'nlp_journal_title_abs-query',
         },
       },
