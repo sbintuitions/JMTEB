@@ -3,6 +3,7 @@ from __future__ import annotations
 from os import PathLike
 from pathlib import Path
 
+import numpy as np
 from loguru import logger
 from sklearn.metrics import accuracy_score, f1_score
 
@@ -115,7 +116,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         )
 
     @staticmethod
-    def _compute_metrics(y_pred: list, y_true: list, average: list) -> dict[str, float]:
+    def _compute_metrics(y_pred: np.ndarray, y_true: list[int], average: list[float]) -> dict[str, float]:
         classifier_results = {}
         classifier_results["accuracy"] = accuracy_score(y_true, y_pred)
         for average_method in average:
