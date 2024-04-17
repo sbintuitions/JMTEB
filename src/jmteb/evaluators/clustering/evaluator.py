@@ -5,13 +5,13 @@ from pathlib import Path
 
 import numpy as np
 from loguru import logger
+from sklearn.base import ClusterMixin
 from sklearn.cluster import (
     AgglomerativeClustering,
     Birch,
     BisectingKMeans,
     MiniBatchKMeans,
 )
-from sklearn.base import ClusterMixin
 from sklearn.metrics import homogeneity_completeness_v_measure
 
 from jmteb.embedders.base import TextEmbedder
