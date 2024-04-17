@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from os import PathLike
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 from loguru import logger
@@ -13,6 +11,7 @@ from sklearn.cluster import (
     BisectingKMeans,
     MiniBatchKMeans,
 )
+from sklearn.base import ClusterMixin
 from sklearn.metrics import homogeneity_completeness_v_measure
 
 from jmteb.embedders.base import TextEmbedder
@@ -62,22 +61,17 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             test_labels = [item.label for item in self.test_dataset]
 
         n_clusters = len(set(test_labels))
-        clustering_models = {
-            type(model).__name__: model
-            for model_constructor in (
-                lambda: MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
-                lambda: AgglomerativeClustering(n_clusters=n_clusters),
-                lambda: BisectingKMeans(n_clusters=n_clusters),
-                lambda: Birch(n_clusters=n_clusters),
-            )
+        model_constructors: dict[str, callable[[], ClusterMixin]] = {
+            "MiniBatchKMeans": lambda: MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
+            "AgglomerativeClustering": lambda: AgglomerativeClustering(n_clusters=n_clusters),
+            "BisectingKMeans": lambda: BisectingKMeans(n_clusters=n_clusters),
+            "Birch": lambda: Birch(n_clusters=n_clusters),
         }
 
         logger.info("Fitting clustering model...")
         val_results = {}
-        for clustering_model_name, clustering_model in clustering_models.items():
-            val_results[clustering_model_name] = self._evaluate_clustering_model(
-                val_embeddings, val_labels, clustering_model
-            )
+        for model_name, model_constructor in model_constructors.items():
+            val_results[model_name] = self._evaluate_clustering_model(val_embeddings, val_labels, model_constructor())
         optimal_clustering_model_name = sorted(
             val_results.items(),
             key=lambda res: res[1][self.main_metric],
@@ -88,7 +82,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             optimal_clustering_model_name: self._evaluate_clustering_model(
                 test_embeddings,
                 test_labels,
-                clustering_models[optimal_clustering_model_name],
+                model_constructors[optimal_clustering_model_name](),
             )
         }
 
@@ -103,14 +97,15 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         )
 
     @staticmethod
-    def _evaluate_clustering_model(embeddings: np.ndarray, y_true: list, model_constructor: Callable[[], ClusteringModel]) -> dict[str, float]:
-        clustering_model_ = model_constructor()
-        clustering_model_.fit(embeddings)
-        y_pred = clustering_model_.labels_
+    def _evaluate_clustering_model(
+        embeddings: np.ndarray, y_true: list, clustering_model: ClusterMixin
+    ) -> dict[str, float]:
+        clustering_model.fit(embeddings)
+        y_pred = clustering_model.labels_
         h_score, c_score, v_score = homogeneity_completeness_v_measure(
             labels_pred=y_pred, labels_true=np.array(y_true)
         )
-        del clustering_model_
+        del clustering_model
         return {
             "v_measure_score": v_score,
             "homogeneity_score": h_score,
