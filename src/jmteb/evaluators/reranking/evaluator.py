@@ -73,26 +73,31 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         logger.info("Start reranking")
 
-        dist_metrics: dict[str, Callable] = {
+        dist_functions: dict[str, Callable] = {
             "cosine_similarity": Similarities.cosine_similarity,
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
-        val_results = self._compute_scores(
-            query_dataset=self.val_query_dataset,
-            query_embeddings=val_query_embeddings,
-            doc_embeddings=doc_embeddings,
-            dist_metrics=dist_metrics,
-        )
+        val_results = {}
+        for dist_name, dist_func in dist_functions.items():
+            val_results[dist_name] = self._compute_metrics(
+                query_dataset=self.val_query_dataset,
+                query_embeddings=val_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_func,
+            )
+
         sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
         optimal_dist_metric = sorted_val_results[0][0]
-        test_results = self._compute_scores(
-            query_dataset=self.test_query_dataset,
-            query_embeddings=test_query_embeddings,
-            doc_embeddings=doc_embeddings,
-            dist_metrics={optimal_dist_metric: dist_metrics[optimal_dist_metric]},
-        )
+        test_results = {
+            optimal_dist_metric: self._compute_metrics(
+                query_dataset=self.test_query_dataset,
+                query_embeddings=test_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_functions[optimal_dist_metric],
+            )
+        }
 
         return EvaluationResults(
             metric_name=self.main_metric,
@@ -104,48 +109,42 @@ class RerankingEvaluator(EmbeddingEvaluator):
             },
         )
 
-    def _compute_scores(
+    def _compute_metrics(
         self,
         query_dataset: RerankingQueryDataset,
         query_embeddings: np.ndarray,
         doc_embeddings: np.ndarray,
-        dist_metrics: dict[str, Callable],
-    ) -> dict[str, dict[str, float]]:
-        results: dict[str, dict[str, float]] = {}
+        dist_func: callable,
+    ) -> dict[str, float]:
         doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
 
-        for dist_metric, dist_func in dist_metrics.items():
-            dist_scores: dict[str, float] = {}
+        results: dict[str, float] = {}
 
-            with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
-                device = "cuda" if torch.cuda.is_available() else "cpu"
-                reranked_docs_list = []
-                for i, item in enumerate(query_dataset):
-                    query_embedding = convert_to_tensor(query_embeddings[i], device=device)
-                    doc_embedding = convert_to_tensor(
-                        np.array(
-                            [doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]
-                        ),
-                        device=device,
-                    )
-                    similarity = dist_func(query_embedding, doc_embedding)
+        with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            reranked_docs_list = []
+            for i, item in enumerate(query_dataset):
+                query_embedding = convert_to_tensor(query_embeddings[i], device=device)
+                doc_embedding = convert_to_tensor(
+                    np.array([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]),
+                    device=device,
+                )
+                similarity = dist_func(query_embedding, doc_embedding)
 
-                    argsorted_indices = torch.argsort(
-                        similarity,
-                        dim=1,
-                        descending=True,
-                    )[0]
-                    reranked_docs = [item.retrieved_docs[argsorted_indice] for argsorted_indice in argsorted_indices]
-                    reranked_docs_list.append(reranked_docs)
-                    pbar.update(i)
+                argsorted_indices = torch.argsort(
+                    similarity,
+                    dim=1,
+                    descending=True,
+                )[0]
+                reranked_docs = [item.retrieved_docs[argsorted_indice] for argsorted_indice in argsorted_indices]
+                reranked_docs_list.append(reranked_docs)
+                pbar.update(i)
 
-            retrieved_docs_list = [item.retrieved_docs for item in query_dataset]
-            relevance_scores_list = [item.relevance_scores for item in query_dataset]
+        retrieved_docs_list = [item.retrieved_docs for item in query_dataset]
+        relevance_scores_list = [item.relevance_scores for item in query_dataset]
 
-            for k in self.ndcg_at_k:
-                dist_scores[f"ndcg@{k}"] = ndcg_at_k(retrieved_docs_list, relevance_scores_list, reranked_docs_list, k)
-
-            results[dist_metric] = dist_scores
+        for k in self.ndcg_at_k:
+            results[f"ndcg@{k}"] = ndcg_at_k(retrieved_docs_list, relevance_scores_list, reranked_docs_list, k)
 
         return results
 

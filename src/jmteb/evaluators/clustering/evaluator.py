@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from os import PathLike
 from pathlib import Path
 from typing import Any
@@ -72,18 +73,24 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         }
 
         logger.info("Fitting clustering model...")
-        val_results = self._evaluate_clustering_models(val_embeddings, val_labels, clustering_models)
+        val_results = {}
+        for clustering_model_name, clustering_model in clustering_models.items():
+            val_results[clustering_model_name] = self._evaluate_clustering_model(
+                val_embeddings, val_labels, clustering_model
+            )
         optimal_clustering_model_name = sorted(
             val_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
         )[0][0]
 
-        test_results = self._evaluate_clustering_models(
-            test_embeddings,
-            test_labels,
-            {optimal_clustering_model_name: clustering_models[optimal_clustering_model_name]},
-        )
+        test_results = {
+            optimal_clustering_model_name: self._evaluate_clustering_model(
+                test_embeddings,
+                test_labels,
+                clustering_models[optimal_clustering_model_name],
+            )
+        }
 
         return EvaluationResults(
             metric_name=self.main_metric,
@@ -95,19 +102,17 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             },
         )
 
-    def _evaluate_clustering_models(
-        self, embeddings: np.ndarray, y_true: list, clustering_models: dict[str, Any]
-    ) -> dict[str, float]:
-        results = {}
-        for clustering_model_name, clustering_model in clustering_models.items():
-            clustering_model.fit(embeddings)
-            y_pred = clustering_model.labels_
-            h_score, c_score, v_score = homogeneity_completeness_v_measure(
-                labels_pred=y_pred, labels_true=np.array(y_true)
-            )
-            results[clustering_model_name] = {
-                "v_measure_score": v_score,
-                "homogeneity_score": h_score,
-                "completeness_score": c_score,
-            }
-        return results
+    @staticmethod
+    def _evaluate_clustering_model(embeddings: np.ndarray, y_true: list, clustering_model: Any) -> dict[str, float]:
+        clustering_model_ = deepcopy(clustering_model)
+        clustering_model_.fit(embeddings)
+        y_pred = clustering_model_.labels_
+        h_score, c_score, v_score = homogeneity_completeness_v_measure(
+            labels_pred=y_pred, labels_true=np.array(y_true)
+        )
+        del clustering_model_
+        return {
+            "v_measure_score": v_score,
+            "homogeneity_score": h_score,
+            "completeness_score": c_score,
+        }

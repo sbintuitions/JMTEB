@@ -48,56 +48,54 @@ class STSEvaluator(EmbeddingEvaluator):
             model, self.test_dataset, "test", overwrite_cache, cache_dir
         )
 
-        val_results = {}
-        test_results = {}
-
-        similarity_metrics = {
+        similarity_functions = {
             "cosine_similarity": PairwiseSimilarities.cosine_similarity,
             "manhatten_distance": PairwiseSimilarities.negative_manhatten_distance,
             "euclidean_distance": PairwiseSimilarities.negative_euclidean_distance,
             "dot_score": PairwiseSimilarities.dot_score,
         }
 
-        val_results = self._compute_similarity_scores(
-            val_embeddings1, val_embeddings2, val_golden_scores, similarity_metrics
-        )
-        optimal_similarity_metric = sorted(
+        val_results = {}
+        for sim_name, sim_func in similarity_functions.items():
+            val_results[sim_name] = self._compute_similarity(
+                val_embeddings1, val_embeddings2, val_golden_scores, sim_func
+            )
+
+        optimal_similarity_name = sorted(
             val_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
-        )[0][0]
-        test_results = self._compute_similarity_scores(
-            test_embeddings1,
-            test_embeddings2,
-            test_golden_scores,
-            {optimal_similarity_metric: similarity_metrics[optimal_similarity_metric]},
-        )
+        )[
+            0
+        ][0]
+        test_results = {
+            optimal_similarity_name: self._compute_similarity(
+                test_embeddings1,
+                test_embeddings2,
+                test_golden_scores,
+                similarity_functions[optimal_similarity_name],
+            )
+        }
 
         return EvaluationResults(
             metric_name=self.main_metric,
-            metric_value=test_results[optimal_similarity_metric][self.main_metric],
+            metric_value=test_results[optimal_similarity_name][self.main_metric],
             details={
-                "optimal_similarity_metric": optimal_similarity_metric,
+                "optimal_similarity_metric": optimal_similarity_name,
                 "val_scores": val_results,
                 "test_scores": test_results,
             },
         )
 
     @staticmethod
-    def _compute_similarity_scores(
-        embeddings1: Tensor,
-        embeddings2: Tensor,
-        golden_scores: list,
-        similarity_metrics: dict[str, callable],
-    ) -> dict[str, dict[str, float]]:
-        results = {}
-        for dist_name, dist_func in similarity_metrics.items():
-            test_sim_score = dist_func(embeddings1, embeddings2).cpu()
-            results[dist_name] = {
-                "pearson": pearsonr(golden_scores, test_sim_score)[0],
-                "spearman": spearmanr(golden_scores, test_sim_score)[0],
-            }
-        return results
+    def _compute_similarity(
+        embeddings1: Tensor, embeddings2: Tensor, golden_scores: list, similarity_func: callable
+    ) -> dict[str, float]:
+        test_sim_score = similarity_func(embeddings1, embeddings2).cpu()
+        return {
+            "pearson": pearsonr(golden_scores, test_sim_score)[0],
+            "spearman": spearmanr(golden_scores, test_sim_score)[0],
+        }
 
     @staticmethod
     def _convert_to_embeddings(

@@ -84,90 +84,89 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
         logger.info("Start retrieval")
 
-        dist_metrics: dict[str, Callable] = {
+        dist_functions: dict[str, Callable] = {
             "cosine_similarity": Similarities.cosine_similarity,
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
         }
 
-        val_results = self._compute_scores(
-            query_dataset=self.val_query_dataset,
-            query_embeddings=val_query_embeddings,
-            doc_embeddings=doc_embeddings,
-            dist_metrics=dist_metrics,
-        )
+        val_results = {}
+        for dist_name, dist_func in dist_functions.items():
+            val_results[dist_name] = self._compute_metrics(
+                query_dataset=self.val_query_dataset,
+                query_embeddings=val_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_func,
+            )
         sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
-        optimal_dist_metric = sorted_val_results[0][0]
+        optimal_dist_name = sorted_val_results[0][0]
 
-        test_results = self._compute_scores(
-            query_dataset=self.test_query_dataset,
-            query_embeddings=test_query_embeddings,
-            doc_embeddings=doc_embeddings,
-            dist_metrics={optimal_dist_metric: dist_metrics[optimal_dist_metric]},
-        )
+        test_results = {
+            optimal_dist_name: self._compute_metrics(
+                query_dataset=self.test_query_dataset,
+                query_embeddings=test_query_embeddings,
+                doc_embeddings=doc_embeddings,
+                dist_func=dist_functions[optimal_dist_name],
+            )
+        }
 
         return EvaluationResults(
             metric_name=self.main_metric,
-            metric_value=test_results[optimal_dist_metric][self.main_metric],
+            metric_value=test_results[optimal_dist_name][self.main_metric],
             details={
-                "optimal_distance_metric": optimal_dist_metric,
+                "optimal_distance_metric": optimal_dist_name,
                 "val_scores": val_results,
                 "test_scores": test_results,
             },
         )
 
-    def _compute_scores(
+    def _compute_metrics(
         self,
         query_dataset: RetrievalQueryDataset,
         query_embeddings: np.ndarray,
         doc_embeddings: np.ndarray,
-        dist_metrics: dict[str, callable],
+        dist_func: callable,
     ) -> dict[str, dict[str, float]]:
-        results: dict[str, dict[str, float]] = {}
+        results: dict[str, float] = {}
 
-        for dist_metric, dist_func in dist_metrics.items():
-            dist_scores: dict[str, float] = {}
+        with tqdm.tqdm(total=len(doc_embeddings), desc="Retrieval doc chunks") as pbar:
+            top_k_indices_chunks: list[np.ndarray] = []
+            top_k_scores_chunks: list[np.ndarray] = []
+            for offset in range(0, len(doc_embeddings), self.doc_chunk_size):
+                doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
 
-            with tqdm.tqdm(total=len(doc_embeddings), desc="Retrieval doc chunks") as pbar:
-                top_k_indices_chunks: list[np.ndarray] = []
-                top_k_scores_chunks: list[np.ndarray] = []
-                for offset in range(0, len(doc_embeddings), self.doc_chunk_size):
-                    doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                query_embeddings = convert_to_tensor(query_embeddings, device=device)
+                doc_embeddings_chunk = convert_to_tensor(doc_embeddings_chunk, device=device)
+                similarity = dist_func(query_embeddings, doc_embeddings_chunk)
 
-                    device = "cuda" if torch.cuda.is_available() else "cpu"
-                    query_embeddings = convert_to_tensor(query_embeddings, device=device)
-                    doc_embeddings_chunk = convert_to_tensor(doc_embeddings_chunk, device=device)
-                    similarity = dist_func(query_embeddings, doc_embeddings_chunk)
+                top_k = min(self.max_top_k, similarity.shape[1])  # in case the corpus is smaller than max_top_k
+                top_k_scores, top_k_indices = torch.topk(
+                    similarity,
+                    k=top_k,
+                    dim=1,
+                )
 
-                    top_k = min(self.max_top_k, similarity.shape[1])  # in case the corpus is smaller than max_top_k
-                    top_k_scores, top_k_indices = torch.topk(
-                        similarity,
-                        k=top_k,
-                        dim=1,
-                    )
+                top_k_indices_chunks.append(top_k_indices + offset)
+                top_k_scores_chunks.append(top_k_scores)
 
-                    top_k_indices_chunks.append(top_k_indices + offset)
-                    top_k_scores_chunks.append(top_k_scores)
+                pbar.update(len(doc_embeddings_chunk))
 
-                    pbar.update(len(doc_embeddings_chunk))
+        top_k_indices = torch.cat(top_k_indices_chunks, axis=1)
+        top_k_scores = torch.cat(top_k_scores_chunks, axis=1)
 
-            top_k_indices = torch.cat(top_k_indices_chunks, axis=1)
-            top_k_scores = torch.cat(top_k_scores_chunks, axis=1)
+        top_k = min(self.max_top_k, top_k_indices.shape[0])
+        sorting_indices_for_top_k = torch.argsort(-top_k_scores, axis=1)[:, :top_k]
+        sorted_top_k_indices = torch.take_along_dim(top_k_indices, sorting_indices_for_top_k, axis=1).tolist()
 
-            top_k = min(self.max_top_k, top_k_indices.shape[0])
-            sorting_indices_for_top_k = torch.argsort(-top_k_scores, axis=1)[:, :top_k]
-            sorted_top_k_indices = torch.take_along_dim(top_k_indices, sorting_indices_for_top_k, axis=1).tolist()
+        golden_doc_ids = [item.relevant_docs for item in query_dataset]
+        retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
 
-            golden_doc_ids = [item.relevant_docs for item in query_dataset]
-            retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
-
-            for k in self.accuracy_at_k:
-                dist_scores[f"accuracy@{k}"] = accuracy_at_k(golden_doc_ids, retrieved_doc_ids, k)
-            for k in self.ndcg_at_k:
-                dist_scores[f"ndcg@{k}"] = ndcg_at_k(golden_doc_ids, retrieved_doc_ids, k)
-            dist_scores[f"mrr@{self.max_top_k}"] = mrr_at_k(golden_doc_ids, retrieved_doc_ids, self.max_top_k)
-
-            results[dist_metric] = dist_scores
+        for k in self.accuracy_at_k:
+            results[f"accuracy@{k}"] = accuracy_at_k(golden_doc_ids, retrieved_doc_ids, k)
+        for k in self.ndcg_at_k:
+            results[f"ndcg@{k}"] = ndcg_at_k(golden_doc_ids, retrieved_doc_ids, k)
+        results[f"mrr@{self.max_top_k}"] = mrr_at_k(golden_doc_ids, retrieved_doc_ids, self.max_top_k)
 
         return results
 
