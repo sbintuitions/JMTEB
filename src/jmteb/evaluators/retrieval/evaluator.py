@@ -4,7 +4,7 @@ import warnings
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import torch
@@ -84,7 +84,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
         logger.info("Start retrieval")
 
-        dist_functions: dict[str, Callable] = {
+        dist_functions: dict[str, callable[[Tensor, Tensor], Tensor]] = {
             "cosine_similarity": Similarities.cosine_similarity,
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
@@ -125,7 +125,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         query_dataset: RetrievalQueryDataset,
         query_embeddings: np.ndarray,
         doc_embeddings: np.ndarray,
-        dist_func: callable,
+        dist_func: callable[[Tensor, Tensor], Tensor],
     ) -> dict[str, dict[str, float]]:
         results: dict[str, float] = {}
 
