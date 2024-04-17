@@ -64,11 +64,11 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         n_clusters = len(set(test_labels))
         clustering_models = {
             type(model).__name__: model
-            for model in (
-                MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
-                AgglomerativeClustering(n_clusters=n_clusters),
-                BisectingKMeans(n_clusters=n_clusters),
-                Birch(n_clusters=n_clusters),
+            for model_constructor in (
+                lambda: MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
+                lambda: AgglomerativeClustering(n_clusters=n_clusters),
+                lambda: BisectingKMeans(n_clusters=n_clusters),
+                lambda: Birch(n_clusters=n_clusters),
             )
         }
 
