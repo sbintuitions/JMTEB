@@ -7,6 +7,8 @@ from jmteb.evaluators.classification import (
 )
 from jmteb.evaluators.classification.data import JsonlClassificationDataset
 
+EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_classifier_name"}
+
 
 class DummyClassificationDataset(ClassificationDataset):
     def __init__(self):
@@ -32,7 +34,7 @@ def test_classification_evaluator(embedder):
     results = evaluator(model=embedder)
     expected_metrics = {"accuracy", "macro_f1"}
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_classifier_name"}
+    assert set(results.details.keys()) == EXPECTED_OUTPUT_DICT_KEYS
     assert results.details["optimal_classifier_name"] in {"logreg", "knn"}
     assert set(results.details["val_scores"].keys()) == {"logreg", "knn"}
     assert list(results.details["test_scores"].keys()) in (["logreg"], ["knn"])

@@ -5,6 +5,10 @@ from jmteb.evaluators.pair_classification import (
 )
 from jmteb.evaluators.pair_classification.data import JsonlPairClassificationDataset
 
+EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}
+EXPECTED_METRIC_NAMES = {"accuracy", "binary_f1", "accuracy_threshold", "binary_f1_threshold"}
+EXPECTED_DIST_FUNC_NAMES = {"cosine_distances", "dot_similarities", "manhatten_distances", "euclidean_distances"}
+
 
 class DummyBinaryDataset(PairClassificationDataset):
     def __init__(self):
@@ -23,19 +27,16 @@ def test_pair_classification_binary(embedder):
     evaluator = PairClassificationEvaluator(val_dataset=DummyBinaryDataset(), test_dataset=DummyBinaryDataset())
     results = evaluator(model=embedder)
 
-    expected_metrics = {"accuracy", "binary_f1", "accuracy_threshold", "binary_f1_threshold"}
-    expected_distances = {"cosine_distances", "dot_similarities", "manhatten_distances", "euclidean_distances"}
-
-    assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_distance_metric"}
-    assert results.details["optimal_distance_metric"] in expected_distances
-    assert set(results.details["val_scores"].keys()) == expected_distances
+    assert results.metric_name in EXPECTED_METRIC_NAMES
+    assert set(results.details.keys()) == EXPECTED_OUTPUT_DICT_KEYS
+    assert results.details["optimal_distance_metric"] in EXPECTED_DIST_FUNC_NAMES
+    assert set(results.details["val_scores"].keys()) == EXPECTED_DIST_FUNC_NAMES
     for value in results.details["val_scores"].values():
-        assert set(value.keys()) == expected_metrics
+        assert set(value.keys()) == EXPECTED_METRIC_NAMES
     assert len(results.details["test_scores"].keys()) == 1
-    assert list(results.details["test_scores"].keys())[0] in expected_distances
+    assert list(results.details["test_scores"].keys())[0] in EXPECTED_DIST_FUNC_NAMES
     for value in results.details["test_scores"].values():
-        assert set(value.keys()) == expected_metrics
+        assert set(value.keys()) == EXPECTED_METRIC_NAMES
 
 
 def test_pair_classification_jsonl_dataset():

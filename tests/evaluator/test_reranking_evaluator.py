@@ -10,6 +10,9 @@ from jmteb.evaluators.reranking.data import (
     JsonlRerankingQueryDataset,
 )
 
+EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}
+EXPECTED_DIST_FUNC_NAMES = {"cosine_similarity", "euclidean_distance", "dot_score"}
+
 
 class DummyDocDataset(RerankingDocDataset):
     def __init__(self):
@@ -42,13 +45,12 @@ def test_reranking_evaluator(embedder):
         doc_dataset=DummyDocDataset(),
     )
     results = evaluator(model=embedder)
-    expected_distance_metrics = {"cosine_similarity", "euclidean_distance", "dot_score"}
 
     assert results.metric_name == "ndcg@10"
-    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_distance_metric"}
-    assert results.details["optimal_distance_metric"] in expected_distance_metrics
-    assert set(results.details["val_scores"].keys()) == expected_distance_metrics
-    assert list(results.details["test_scores"].keys()) in [[sim] for sim in expected_distance_metrics]
+    assert set(results.details.keys()) == EXPECTED_OUTPUT_DICT_KEYS
+    assert results.details["optimal_distance_metric"] in EXPECTED_DIST_FUNC_NAMES
+    assert set(results.details["val_scores"].keys()) == EXPECTED_DIST_FUNC_NAMES
+    assert list(results.details["test_scores"].keys()) in [[sim] for sim in EXPECTED_DIST_FUNC_NAMES]
     for score_splitname in ("val_scores", "test_scores"):
         for scores in results.details[score_splitname].values():
             for score in scores.keys():

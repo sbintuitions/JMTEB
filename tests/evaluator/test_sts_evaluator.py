@@ -1,6 +1,10 @@
 from jmteb.evaluators.sts import STSDataset, STSEvaluator, STSInstance
 from jmteb.evaluators.sts.data import JsonlSTSDataset
 
+EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_similarity_metric"}
+EXPECTED_SIM_FUNC_NAMES = {"cosine_similarity", "manhatten_distance", "euclidean_distance", "dot_score"}
+EXPECTED_METRIC_NAMES = {"pearson", "spearman"}
+
 
 class DummySTSDataset(STSDataset):
     def __init__(self):
@@ -17,18 +21,15 @@ def test_sts(embedder):
     evaluator = STSEvaluator(val_dataset=DummySTSDataset(), test_dataset=DummySTSDataset())
     results = evaluator(model=embedder)
 
-    expected_metrics = {"pearson", "spearman"}
-    expected_sims = {"cosine_similarity", "manhatten_distance", "euclidean_distance", "dot_score"}
-
-    assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_similarity_metric"}
-    assert results.details["optimal_similarity_metric"] in expected_sims
-    assert set(results.details["val_scores"].keys()) == expected_sims
-    assert list(results.details["test_scores"].keys()) in [[dist] for dist in expected_sims]
+    assert results.metric_name in EXPECTED_METRIC_NAMES
+    assert set(results.details.keys()) == EXPECTED_OUTPUT_DICT_KEYS
+    assert results.details["optimal_similarity_metric"] in EXPECTED_SIM_FUNC_NAMES
+    assert set(results.details["val_scores"].keys()) == EXPECTED_SIM_FUNC_NAMES
+    assert list(results.details["test_scores"].keys()) in [[dist] for dist in EXPECTED_SIM_FUNC_NAMES]
     for score_splitname in ("val_scores", "test_scores"):
-        for dist in expected_sims:
+        for dist in EXPECTED_SIM_FUNC_NAMES:
             if dist in results.details[score_splitname]:
-                assert set(results.details[score_splitname][dist].keys()) == expected_metrics
+                assert set(results.details[score_splitname][dist].keys()) == EXPECTED_METRIC_NAMES
 
 
 def test_sts_jsonl_dataset():

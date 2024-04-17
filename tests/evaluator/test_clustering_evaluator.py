@@ -5,6 +5,10 @@ from jmteb.evaluators.clustering import (
 )
 from jmteb.evaluators.clustering.data import JsonlClusteringDataset
 
+EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_clustering_model_name"}
+EXPECTED_METRIC_NAMES = {"v_measure_score", "completeness_score", "homogeneity_score"}
+EXPECTED_MODEL_NAMES = {"MiniBatchKMeans", "AgglomerativeClustering", "BisectingKMeans", "Birch"}
+
 
 class DummyClusteringDataset(ClusteringDataset):
     def __init__(self):
@@ -20,10 +24,10 @@ class DummyClusteringDataset(ClusteringDataset):
 def test_kmeans_clustering(embedder):
     evaluator = ClusteringEvaluator(val_dataset=DummyClusteringDataset(), test_dataset=DummyClusteringDataset())
     results = evaluator(model=embedder)
-    expected_metrics = {"v_measure_score", "completeness_score", "homogeneity_score"}
+    expected_metrics = EXPECTED_METRIC_NAMES
     assert results.metric_name in expected_metrics
-    assert set(results.details.keys()) == {"val_scores", "test_scores", "optimal_clustering_model_name"}
-    expected_clustering_models = {"MiniBatchKMeans", "AgglomerativeClustering", "BisectingKMeans", "Birch"}
+    assert set(results.details.keys()) == EXPECTED_OUTPUT_DICT_KEYS
+    expected_clustering_models = EXPECTED_MODEL_NAMES
     assert results.details["optimal_clustering_model_name"] in expected_clustering_models
     assert set(results.details["val_scores"].keys()) == expected_clustering_models
     assert list(results.details["test_scores"].keys()) in [[model] for model in expected_clustering_models]
