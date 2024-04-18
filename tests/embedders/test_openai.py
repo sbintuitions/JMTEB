@@ -81,7 +81,18 @@ class TestOpenAIEmbedder:
 
     def test_model_dim(self):
         assert OpenAIEmbedder(model="text-embedding-3-large").dim == 3072
+        assert OpenAIEmbedder(model="text-embedding-3-small").dim == 1536
         assert OpenAIEmbedder(model="text-embedding-ada-002").dim == 1536
+
+    def test_model_max_token_length(self):
+        assert OpenAIEmbedder(model="text-embedding-3-large").max_token_length == 8191
+        assert OpenAIEmbedder(model="text-embedding-3-small").max_token_length == 8191
+        assert OpenAIEmbedder(model="text-embedding-ada-002").max_token_length == 8191
+
+    def test_model_encoder(self):
+        assert OpenAIEmbedder(model="text-embedding-3-large").encoding.name == "cl100k_base"
+        assert OpenAIEmbedder(model="text-embedding-3-small").encoding.name == "cl100k_base"
+        assert OpenAIEmbedder(model="text-embedding-ada-002").encoding.name == "cl100k_base"
 
     def test_ada_002_dim(self):
         # check that no `dimensions` argument is set for model "text-embedding-ada-002"
