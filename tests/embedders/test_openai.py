@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterable
 
 import numpy as np
 import pytest
@@ -28,7 +29,7 @@ class MockEmbedding:
 
 
 class MockOpenAIClientEmbedding:
-    def create(input: str | list[str], model: str, **kwargs):
+    def create(input: str | Iterable[str] | Iterable[int] | Iterable[Iterable[int]], model: str, **kwargs):
         if model == "text-embedding-ada-002":
             assert "dimensions" not in kwargs
             dimensions = OUTPUT_DIM
@@ -37,6 +38,11 @@ class MockOpenAIClientEmbedding:
             dimensions = kwargs.get("dimensions")
         if isinstance(input, str):
             input = [input]
+        elif isinstance(input, Iterable):
+            assert len(input) > 0
+            if isinstance(input[0], int):
+                # a list of token IDs is one sentence
+                input = [input]
         return MockData(data=[MockEmbedding(embedding=[0.1] * dimensions)] * len(input))
 
 
@@ -59,6 +65,17 @@ class TestOpenAIEmbedder:
 
     def test_get_output_dim(self):
         assert self.model.get_output_dim() == OUTPUT_DIM
+
+    def test_token_count(self):
+        # test if the right tiktoken encoding instance is being used
+        assert len(self.model.encoding.encode("任意のテキスト")) == 6
+
+    def test_truncate(self):
+        assert len(self.model.truncate_text("任意のテキスト")) == 6
+        assert (
+            len(self.model.truncate_text("任意のテキスト" * self.model.max_token_length))
+            == self.model.max_token_length
+        )
 
     def test_nonexistent_model(self):
         with pytest.raises(AssertionError):
