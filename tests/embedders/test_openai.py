@@ -7,9 +7,10 @@ import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
-from jmteb.embedders import OpenAIEmbedder, TextEmbedder
+from jmteb.embedders import OpenAIEmbedder
 
 OUTPUT_DIM = 1536  # the maximum dim of default model `text-embedding-3-small`
+TEXT = "任意のテキスト"
 
 
 @pytest.fixture(scope="function")
@@ -49,17 +50,17 @@ class MockOpenAIClientEmbedding:
 @pytest.mark.usefixtures("mock_openai_embedder")
 class TestOpenAIEmbedder:
     @pytest.fixture(autouse=True)
-    def setup_class(cls, mocker: MockerFixture, mock_openai_embedder: TextEmbedder):
+    def setup_class(cls, mocker: MockerFixture, mock_openai_embedder: OpenAIEmbedder):
         cls.model = mock_openai_embedder
         cls.mock_create = mocker.patch.object(cls.model.client, "embeddings", new=MockOpenAIClientEmbedding)
 
     def test_encode(self):
-        embeddings = self.model.encode("任意のテキスト")
+        embeddings = self.model.encode(TEXT)
         assert isinstance(embeddings, np.ndarray)
         assert embeddings.shape == (OUTPUT_DIM,)
 
     def test_encode_multiple(self):
-        embeddings = self.model.encode(["任意のテキスト"] * 3)
+        embeddings = self.model.encode([TEXT] * 3)
         assert isinstance(embeddings, np.ndarray)
         assert embeddings.shape == (3, OUTPUT_DIM)
 
@@ -68,14 +69,11 @@ class TestOpenAIEmbedder:
 
     def test_token_count(self):
         # test if the right tiktoken encoding instance is being used
-        assert len(self.model.encoding.encode("任意のテキスト")) == 6
+        assert len(self.model.encoding.encode(TEXT)) == 6
 
     def test_truncate(self):
-        assert len(self.model.truncate_text("任意のテキスト")) == 6
-        assert (
-            len(self.model.truncate_text("任意のテキスト" * self.model.max_token_length))
-            == self.model.max_token_length
-        )
+        assert len(self.model.truncate_text(TEXT)) == 6
+        assert len(self.model.truncate_text(TEXT * self.model.max_token_length)) == self.model.max_token_length
 
     def test_nonexistent_model(self):
         with pytest.raises(AssertionError):
