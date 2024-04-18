@@ -1,5 +1,5 @@
 {
-  amazon_review_classification: {
+  amazon_counterfactual_classification: {
     class_path: 'ClassificationEvaluator',
     init_args: {
       train_dataset: {
