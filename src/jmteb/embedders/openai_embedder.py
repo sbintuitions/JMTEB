@@ -61,9 +61,9 @@ class OpenAIEmbedder(TextEmbedder):
         kwargs = {"dimensions": self.dim} if self.model != "text-embedding-ada-002" else {}
         # specifying `dimensions` is not allowed for "text-embedding-ada-002"
         if isinstance(text, str):
-            token_ids: list[int] = self.truncate_text(text)
+            token_ids: list[int] = self.encode_and_truncate_text(text)
         else:
-            token_ids: list[list[int]] = [self.truncate_text(t) for t in text]
+            token_ids: list[list[int]] = [self.encode_and_truncate_text(t) for t in text]
         result = np.asarray(
             [
                 data.embedding
@@ -81,7 +81,7 @@ class OpenAIEmbedder(TextEmbedder):
     def get_output_dim(self) -> int:
         return self.dim
 
-    def truncate_text(self, text: str) -> list[int]:
+    def encode_and_truncate_text(self, text: str) -> list[int]:
         # Refer to https://cookbook.openai.com/examples/how_to_count_tokens_with_tiktoken
         # return a list of token IDs
         # As encoding long text is very slow, we can truncate the raw text first to speedup

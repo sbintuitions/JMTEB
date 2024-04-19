@@ -72,8 +72,10 @@ class TestOpenAIEmbedder:
         assert len(self.model.encoding.encode(TEXT)) == 6
 
     def test_truncate(self):
-        assert len(self.model.truncate_text(TEXT)) == 6
-        assert len(self.model.truncate_text(TEXT * self.model.max_token_length)) == self.model.max_token_length
+        assert len(self.model.encode_and_truncate_text(TEXT)) == 6
+        assert (
+            len(self.model.encode_and_truncate_text(TEXT * self.model.max_token_length)) == self.model.max_token_length
+        )
 
     def test_nonexistent_model(self):
         with pytest.raises(AssertionError):
