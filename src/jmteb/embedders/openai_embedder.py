@@ -84,8 +84,4 @@ class OpenAIEmbedder(TextEmbedder):
     def encode_and_truncate_text(self, text: str) -> list[int]:
         # Refer to https://cookbook.openai.com/examples/how_to_count_tokens_with_tiktoken
         # return a list of token IDs
-        # As encoding long text is very slow, we can truncate the raw text first to speedup
-        # In Japanese, 1 token = 0.92 tokens in average for cl100k_base (vocab of all embedding models),
-        # (source: https://zenn.dev/microsoft/articles/dcf32f3516f013)
-        # so we infer the token number of text[: max_token_len * 1.2] is very likely to be more than max_token_len.
-        return self.encoding.encode(text[: int(self.max_token_length * 1.2)])[: self.max_token_length]
+        return self.encoding.encode(text)[: self.max_token_length]
