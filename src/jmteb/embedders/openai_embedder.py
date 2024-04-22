@@ -84,4 +84,7 @@ class OpenAIEmbedder(TextEmbedder):
     def encode_and_truncate_text(self, text: str) -> list[int]:
         # Refer to https://cookbook.openai.com/examples/how_to_count_tokens_with_tiktoken
         # return a list of token IDs
+        if not text:
+            text = " "
+            logger.warning("Found empty string!")
         return self.encoding.encode(text)[: self.max_token_length]
