@@ -38,6 +38,9 @@ class OpenAIEmbedder(TextEmbedder):
         OpenAI embeddings have been normalized to length 1. See
             https://platform.openai.com/docs/guides/embeddings/which-distance-function-should-i-use
 
+        As OpenAI embedding APIs don't allow an empty string as input, we replace an empty string with a
+            space " " to avoid error.
+
         Args:
             model (str, optional): Name of an OpenAI embedding model. Defaults to "text-embedding-3-small".
             dim (int, optional): Output dimension. Defaults to 1536.
