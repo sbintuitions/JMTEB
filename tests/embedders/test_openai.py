@@ -31,6 +31,8 @@ class MockEmbedding:
 
 class MockOpenAIClientEmbedding:
     def create(input: str | Iterable[str] | Iterable[int] | Iterable[Iterable[int]], model: str, **kwargs):
+        if not input:
+            raise ValueError("Empty string not allowed")
         if model == "text-embedding-ada-002":
             assert "dimensions" not in kwargs
             dimensions = OUTPUT_DIM
@@ -113,3 +115,8 @@ class TestOpenAIEmbedder:
 
     def test_dim_smaller(self):
         assert OpenAIEmbedder(dim=OUTPUT_DIM // 2).dim == OUTPUT_DIM // 2
+
+    def test_empty_string(self):
+        embedder = OpenAIEmbedder()
+        # check that an empty string is replaced by " ", else a ValueError will be raised.
+        assert all(np.equal(embedder.encode(""), embedder.encode(" ")))
