@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+import numpy as np
 import pytest
 
-from jmteb.embedders.sbert_embedder import SentenceBertEmbedder
+from jmteb.embedders import TextEmbedder
 
 
 def pytest_addoption(parser: pytest.Parser):
@@ -21,6 +24,19 @@ def pytest_collection_modifyitems(config: pytest.Config, items: pytest.Parser):
             item.add_marker(skip_slow)
 
 
+class DummyTextEmbedder(TextEmbedder):
+    def encode(self, text: str | list[str]) -> np.ndarray:
+        if isinstance(text, str):
+            batch_size = 1
+        else:
+            batch_size = len(text)
+
+        return np.random.random((batch_size, self.get_output_dim()))
+
+    def get_output_dim(self) -> int:
+        return 32
+
+
 @pytest.fixture(scope="module")
-def embedder(model_name_or_path: str = "prajjwal1/bert-tiny"):
-    return SentenceBertEmbedder(model_name_or_path=model_name_or_path)
+def embedder():
+    return DummyTextEmbedder()
