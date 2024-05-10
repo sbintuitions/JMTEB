@@ -1,0 +1,33 @@
+import subprocess
+import tempfile
+from pathlib import Path
+
+from evaluator.test_sts_evaluator import DummySTSDataset
+
+from jmteb.__main__ import main
+from jmteb.evaluators import STSEvaluator
+
+
+def test_main(embedder):
+    main(
+        text_embedder=embedder,
+        evaluators={"sts": STSEvaluator(val_dataset=DummySTSDataset(), test_dataset=DummySTSDataset())},
+        save_dir=None,
+        overwrite_cache=False,
+    )
+
+
+def test_main_cli():
+    with tempfile.TemporaryDirectory() as f:
+        # fmt: off
+        command = [
+            "python", "-m", "jmteb",
+            "--embedder", "tests.conftest.DummyTextEmbedder",
+            "--save_dir", f,
+            "--eval_include", '["jsts"]',
+        ]
+        # fmt: on
+        result = subprocess.run(command)
+        assert result.returncode == 0
+
+        assert (Path(f) / "summary.json").exists()
