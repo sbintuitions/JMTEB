@@ -57,16 +57,37 @@ if __name__ == "__main__":
     parser.add_argument("--config", action=ActionConfigFile, help="Path to the config file.")
     parser.add_argument("--save_dir", type=str, default=None, help="Directory to save the outputs")
     parser.add_argument("--overwrite_cache", type=bool, default=False, help="Overwrite the save_dir if it exists")
+    parser.add_argument("--eval_include", type=list[str], default=None, help="Evaluators to include.")
     parser.add_argument("--eval_exclude", type=list[str], default=None, help="Evaluators to exclude.")
 
     args = parser.parse_args()
 
-    if args.eval_exclude is not None:
+    if args.eval_include is not None:
+        # check if the specified evaluators are valid
         evaluator_keys = list(args.evaluators.keys())
+        for include_key in args.eval_include:
+            if include_key not in evaluator_keys:
+                raise ValueError(f"Invalid evaluator name: {include_key}")
+
+        # remove evaluators not in eval_include
+        for key in evaluator_keys:
+            if key not in args.eval_include:
+                args.evaluators.pop(key)
+
+    if args.eval_exclude is not None:
+        # check if the specified evaluators are valid
+        evaluator_keys = list(args.evaluators.keys())
+        for exclude_key in args.eval_exclude:
+            if exclude_key not in evaluator_keys:
+                raise ValueError(f"Invalid evaluator name: {exclude_key}")
+
         # remove evaluators in eval_exclude
         for key in evaluator_keys:
             if key in args.eval_exclude:
                 args.evaluators.pop(key)
+
+    if len(args.evaluators) == 0:
+        raise ValueError("No evaluator is selected. Please check the config file or the command line arguments.")
 
     args = parser.instantiate_classes(args)
     if isinstance(args.evaluators, str):
