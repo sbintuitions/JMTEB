@@ -40,7 +40,8 @@ def main(
 
         logger.info(f"Results for {eval_name}\n{json.dumps(metrics.as_dict(), indent=4, ensure_ascii=False)}")
 
-    logger.info(f"Saving result summary to {Path(save_dir) / 'summary.json'}")
+    if save_dir:
+        logger.info(f"Saving result summary to {Path(save_dir) / 'summary.json'}")
     score_recorder.record_summary()
 
 
