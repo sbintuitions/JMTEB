@@ -28,6 +28,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
         test_query_dataset (RerankingQueryDataset): test query dataset used for computing the scores
         doc_dataset (RerankingDocDataset): document dataset
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
+        query_prefix (str | None): prefix for queries. Defaults to None.
+        doc_prefix (str | None): prefix for documents. Defaults to None.
     """
 
     def __init__(
@@ -36,12 +38,16 @@ class RerankingEvaluator(EmbeddingEvaluator):
         test_query_dataset: RerankingQueryDataset,
         doc_dataset: RerankingDocDataset,
         ndcg_at_k: list[int] | None = None,
+        query_prefix: str | None = None,
+        doc_prefix: str | None = None,
     ) -> None:
         self.test_query_dataset = test_query_dataset
         self.val_query_dataset = val_query_dataset
         self.doc_dataset = doc_dataset
         self.ndcg_at_k = ndcg_at_k or [10, 20, 40]
         self.main_metric = f"ndcg@{self.ndcg_at_k[0]}"
+        self.query_prefix = query_prefix
+        self.doc_prefix = doc_prefix
 
     def __call__(
         self,
@@ -54,6 +60,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         val_query_embeddings = model.batch_encode_with_cache(
             text_list=[item.query for item in self.val_query_dataset],
+            prompt=self.query_prefix,
             cache_path=Path(cache_dir) / "val_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
@@ -62,11 +69,13 @@ class RerankingEvaluator(EmbeddingEvaluator):
         else:
             test_query_embeddings = model.batch_encode_with_cache(
                 text_list=[item.query for item in self.test_query_dataset],
+                prompt=self.query_prefix,
                 cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
             )
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
+            prompt=self.doc_prefix,
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )

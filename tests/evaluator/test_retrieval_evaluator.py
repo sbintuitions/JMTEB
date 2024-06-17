@@ -12,11 +12,13 @@ from jmteb.evaluators.retrieval.data import (
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}
 EXPECTED_DIST_FUNC_NAMES = {"cosine_similarity", "euclidean_distance", "dot_score"}
+QUERY_PREFIX = "クエリ: "
+DOC_PREFIX = "ドキュメント: "
 
 
 class DummyDocDataset(RetrievalDocDataset):
-    def __init__(self):
-        self._items = [RetrievalDoc(id=str(i), text=f"dummy document {i}") for i in range(30)]
+    def __init__(self, prefix: str = ""):
+        self._items = [RetrievalDoc(id=str(i), text=f"{prefix}dummy document {i}") for i in range(30)]
 
     def __len__(self):
         return len(self._items)
@@ -26,8 +28,8 @@ class DummyDocDataset(RetrievalDocDataset):
 
 
 class DummyQueryDataset(RetrievalQueryDataset):
-    def __init__(self):
-        self._items = [RetrievalQuery(f"dummy query {i}", relevant_docs=[str(i)]) for i in range(10)]
+    def __init__(self, prefix: str = ""):
+        self._items = [RetrievalQuery(f"{prefix}dummy query {i}", relevant_docs=[str(i)]) for i in range(10)]
 
     def __len__(self):
         return len(self._items)
@@ -56,6 +58,28 @@ def test_retrieval_evaluator(embedder):
         for scores in results.details[score_splitname].values():
             for score in scores.keys():
                 assert any(score.startswith(metric) for metric in ["accuracy", "mrr", "ndcg"])
+
+
+def test_retrieval_evaluator_with_prefix(embedder):
+    evaluator_with_prefix = RetrievalEvaluator(
+        val_query_dataset=DummyQueryDataset(),
+        test_query_dataset=DummyQueryDataset(),
+        doc_dataset=DummyDocDataset(),
+        query_prefix=QUERY_PREFIX,
+        doc_prefix=DOC_PREFIX,
+        accuracy_at_k=[1, 3, 5, 10],
+        ndcg_at_k=[1, 3, 5],
+        doc_chunk_size=3,
+    )
+    evaluator_with_manual_prefix = RetrievalEvaluator(
+        val_query_dataset=DummyQueryDataset(prefix=QUERY_PREFIX),
+        test_query_dataset=DummyQueryDataset(prefix=QUERY_PREFIX),
+        doc_dataset=DummyDocDataset(prefix=DOC_PREFIX),
+        accuracy_at_k=[1, 3, 5, 10],
+        ndcg_at_k=[1, 3, 5],
+        doc_chunk_size=3,
+    )
+    assert evaluator_with_prefix(model=embedder) == evaluator_with_manual_prefix(model=embedder)
 
 
 def test_if_chunking_does_not_change_result(embedder):

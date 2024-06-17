@@ -31,6 +31,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         doc_chunk_size (int): The maximum size of corpus chunk. Smaller chunk requires less memory but lowers speed.
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
         accuracy_at_k (list[int] | None): accuracy in top k hits.
+        query_prefix (str | None): prefix for queries. Defaults to None.
+        doc_prefix (str | None): prefix for documents. Defaults to None.
     """
 
     def __init__(
@@ -41,6 +43,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         doc_chunk_size: int = 1000000,
         accuracy_at_k: list[int] | None = None,
         ndcg_at_k: list[int] | None = None,
+        query_prefix: str | None = None,
+        doc_prefix: str | None = None,
     ) -> None:
         self.val_query_dataset = val_query_dataset
         self.test_query_dataset = test_query_dataset
@@ -53,6 +57,9 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         self.max_top_k = max(sum([self.accuracy_at_k, self.ndcg_at_k], []))
         self.main_metric = f"ndcg@{self.ndcg_at_k[0]}"
 
+        self.query_prefix = query_prefix
+        self.doc_prefix = doc_prefix
+
     def __call__(
         self,
         model: TextEmbedder,
@@ -64,6 +71,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
         val_query_embeddings = model.batch_encode_with_cache(
             text_list=[item.query for item in self.val_query_dataset],
+            prompt=self.query_prefix,
             cache_path=Path(cache_dir) / "val_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
@@ -72,12 +80,14 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         else:
             test_query_embeddings = model.batch_encode_with_cache(
                 text_list=[item.query for item in self.test_query_dataset],
+                prompt=self.query_prefix,
                 cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
             )
 
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
+            prompt=self.doc_prefix,
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
