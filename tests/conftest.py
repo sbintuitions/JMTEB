@@ -25,7 +25,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: pytest.Parser):
 
 
 class DummyTextEmbedder(TextEmbedder):
-    def encode(self, text: str | list[str]) -> np.ndarray:
+    def encode(self, text: str | list[str], prompt: str | None = None) -> np.ndarray:
         if isinstance(text, str):
             batch_size = 1
         else:
