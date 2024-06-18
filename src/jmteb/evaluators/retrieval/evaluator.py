@@ -71,7 +71,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
         val_query_embeddings = model.batch_encode_with_cache(
             text_list=[item.query for item in self.val_query_dataset],
-            prompt=self.query_prefix,
+            prefix=self.query_prefix,
             cache_path=Path(cache_dir) / "val_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
@@ -80,14 +80,14 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         else:
             test_query_embeddings = model.batch_encode_with_cache(
                 text_list=[item.query for item in self.test_query_dataset],
-                prompt=self.query_prefix,
+                prefix=self.query_prefix,
                 cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
             )
 
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
-            prompt=self.doc_prefix,
+            prefix=self.doc_prefix,
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )

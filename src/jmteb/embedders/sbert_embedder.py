@@ -26,18 +26,15 @@ class SentenceBertEmbedder(TextEmbedder):
         self.batch_size = batch_size
         self.device = device
         self.normalize_embeddings = normalize_embeddings
-        self.max_seq_length = max_seq_length
+        self.max_seq_length = self.model.max_seq_length
         self.add_eos = add_eos
 
-        if self.max_seq_length:
-            self.model.max_seq_length = self.max_seq_length
-
-    def encode(self, text: str | list[str], prompt: str | None = None) -> np.ndarray:
+    def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         if self.add_eos:
             text = self.add_eos_func(text)
         return self.model.encode(
             text,
-            prompt=prompt,
+            prompt=prefix,
             convert_to_numpy=True,
             batch_size=self.batch_size,
             device=self.device,
