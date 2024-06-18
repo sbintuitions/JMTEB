@@ -23,11 +23,21 @@ class STSEvaluator(EmbeddingEvaluator):
     Args:
         val_dataset (STSDataset): dev dataset for hyperparameter tuning
         test_dataset (STSDataset): test dataset
+        sentence1_prefix (str | None): prefix for sentence1. Defaults to None.
+        sentence2_prefix (str | None): prefix for sentence2. Defaults to None.
     """
 
-    def __init__(self, val_dataset: STSDataset, test_dataset: STSDataset) -> None:
+    def __init__(
+        self,
+        val_dataset: STSDataset,
+        test_dataset: STSDataset,
+        sentence1_prefix: str | None = None,
+        sentence2_prefix: str | None = None,
+    ) -> None:
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
+        self.sentence1_prefix = sentence1_prefix
+        self.sentence2_prefix = sentence2_prefix
         self.main_metric = "spearman"
 
     def __call__(
@@ -98,8 +108,8 @@ class STSEvaluator(EmbeddingEvaluator):
             "spearman": spearmanr(golden_scores, test_sim_score)[0],
         }
 
-    @staticmethod
     def _convert_to_embeddings(
+        self,
         model: TextEmbedder,
         dataset: STSDataset,
         split: str = "test",
@@ -108,11 +118,13 @@ class STSEvaluator(EmbeddingEvaluator):
     ) -> tuple[Tensor, Tensor, list[float]]:
         embeddings1 = model.batch_encode_with_cache(
             [item.sentence1 for item in dataset],
+            prefix=self.sentence1_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings1.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
         embeddings2 = model.batch_encode_with_cache(
             [item.sentence2 for item in dataset],
+            prefix=self.sentence2_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings2.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )

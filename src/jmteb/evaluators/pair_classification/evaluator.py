@@ -20,15 +20,21 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
     Args:
         val_dataset (PairClassificationDataset): validation dataset
         test_dataset (PairClassificationDataset): test dataset
+        sentence1_prefix (str | None): prefix for sentence1. Defaults to None.
+        sentence2_prefix (str | None): prefix for sentence2. Defaults to None.
     """
 
     def __init__(
         self,
         val_dataset: PairClassificationDataset,
         test_dataset: PairClassificationDataset,
+        sentence1_prefix: str | None = None,
+        sentence2_prefix: str | None = None,
     ) -> None:
         self.test_dataset = test_dataset
         self.val_dataset = val_dataset
+        self.sentence1_prefix = sentence1_prefix
+        self.sentence2_prefix = sentence2_prefix
         self.metrics = [ThresholdAccuracyMetric(), ThresholdF1Metric()]
         self.main_metric = "binary_f1"
 
@@ -101,8 +107,8 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
             },
         )
 
-    @staticmethod
     def _convert_to_embeddings(
+        self,
         model: TextEmbedder,
         dataset: PairClassificationDataset,
         split: str = "test",
@@ -111,11 +117,13 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
     ) -> tuple[np.ndarray, np.ndarray, list[float]]:
         embeddings1 = model.batch_encode_with_cache(
             [item.sentence1 for item in dataset],
+            prefix=self.sentence1_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings1.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
         embeddings2 = model.batch_encode_with_cache(
             [item.sentence2 for item in dataset],
+            prefix=self.sentence2_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings2.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )

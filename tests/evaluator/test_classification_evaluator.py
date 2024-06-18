@@ -8,11 +8,12 @@ from jmteb.evaluators.classification import (
 from jmteb.evaluators.classification.data import JsonlClassificationDataset
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_classifier_name"}
+PREFIX = "以下の文を分類する: "
 
 
 class DummyClassificationDataset(ClassificationDataset):
-    def __init__(self):
-        self._items = [ClassificationInstance(text=f"dummy text {i}", label=i // 2) for i in range(10)]
+    def __init__(self, prefix: str = ""):
+        self._items = [ClassificationInstance(text=f"{prefix}dummy text {i}", label=i // 2) for i in range(10)]
 
     def __len__(self):
         return len(self._items)
@@ -41,6 +42,29 @@ def test_classification_evaluator(embedder):
     for score_splitname in ("val_scores", "test_scores"):
         for value in results.details[score_splitname].values():
             assert set(value.keys()) == expected_metrics
+
+
+def test_classification_evaluator_with_prefix(embedder):
+    evaluator_with_prefix = ClassificationEvaluator(
+        train_dataset=DummyClassificationDataset(),
+        val_dataset=DummyClassificationDataset(),
+        test_dataset=DummyClassificationDataset(),
+        prefix=PREFIX,
+        classifiers={
+            "logreg": LogRegClassifier(),
+            "knn": KnnClassifier(k=2, distance_metric="cosine"),
+        },
+    )
+    evaluator_with_manual_prefix = ClassificationEvaluator(
+        train_dataset=DummyClassificationDataset(prefix=PREFIX),
+        val_dataset=DummyClassificationDataset(prefix=PREFIX),
+        test_dataset=DummyClassificationDataset(prefix=PREFIX),
+        classifiers={
+            "logreg": LogRegClassifier(),
+            "knn": KnnClassifier(k=2, distance_metric="cosine"),
+        },
+    )
+    assert evaluator_with_prefix(embedder) == evaluator_with_manual_prefix(embedder)
 
 
 def test_classification_jsonl_dataset():
