@@ -31,7 +31,7 @@ class SentenceBertEmbedder(TextEmbedder):
 
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         if self.add_eos:
-            text = self.add_eos_func(text)
+            text = self._add_eos_func(text)
         return self.model.encode(
             text,
             prompt=prefix,
@@ -41,7 +41,7 @@ class SentenceBertEmbedder(TextEmbedder):
             normalize_embeddings=self.normalize_embeddings,
         )
 
-    def add_eos_func(self, text: str | list[str]) -> str | list[str]:
+    def _add_eos_func(self, text: str | list[str]) -> str | list[str]:
         try:
             eos_token = getattr(self.model.tokenizer, "eos_token")
         except AttributeError:
