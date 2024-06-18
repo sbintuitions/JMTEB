@@ -9,7 +9,6 @@ SENT2_PREFIX = "文2: "
 
 
 class DummySTSDataset(STSDataset):
-
     def __init__(self, sent1_prefix: str = "", sent2_prefix: str = ""):
         self._items = [
             STSInstance(f"{sent1_prefix}dummy sentence 1", f"{sent2_prefix}dummy sentence 2", i * 0.3)
