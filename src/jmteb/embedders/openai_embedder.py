@@ -64,9 +64,9 @@ class OpenAIEmbedder(TextEmbedder):
         kwargs = {"dimensions": self.dim} if self.model != "text-embedding-ada-002" else {}
         # specifying `dimensions` is not allowed for "text-embedding-ada-002"
         if isinstance(text, str):
-            token_ids: list[int] = self.encode_and_truncate_text(text)
+            token_ids: list[int] = self.encode_and_truncate_text(text, prefix)
         else:
-            token_ids: list[list[int]] = [self.encode_and_truncate_text(t) for t in text]
+            token_ids: list[list[int]] = [self.encode_and_truncate_text(t, prefix) for t in text]
         result = np.asarray(
             [
                 data.embedding
@@ -90,4 +90,5 @@ class OpenAIEmbedder(TextEmbedder):
         if not text:
             text = " "
             logger.warning("Found empty string!")
-        return self.encoding.encode(text, prefix)[: self.max_token_length]
+        # Ignore prefix in OpenAIEmbedder
+        return self.encoding.encode(text)[: self.max_token_length]
