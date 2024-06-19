@@ -12,11 +12,13 @@ from jmteb.evaluators.reranking.data import (
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}
 EXPECTED_DIST_FUNC_NAMES = {"cosine_similarity", "euclidean_distance", "dot_score"}
+QUERY_PREFIX = "クエリ: "
+DOC_PREFIX = "ドキュメント: "
 
 
 class DummyDocDataset(RerankingDocDataset):
-    def __init__(self):
-        self._items = [RerankingDoc(id=str(i), text=f"dummy document {i}") for i in range(30)]
+    def __init__(self, prefix: str = ""):
+        self._items = [RerankingDoc(id=str(i), text=f"{prefix}dummy document {i}") for i in range(30)]
 
     def __len__(self):
         return len(self._items)
@@ -26,9 +28,10 @@ class DummyDocDataset(RerankingDocDataset):
 
 
 class DummyQueryDataset(RerankingQueryDataset):
-    def __init__(self):
+    def __init__(self, prefix: str = ""):
         self._items = [
-            RerankingQuery(query=f"dummy query {i}", retrieved_docs=[str(i)], relevance_scores=[1]) for i in range(10)
+            RerankingQuery(query=f"{prefix}dummy query {i}", retrieved_docs=[str(i)], relevance_scores=[1])
+            for i in range(10)
         ]
 
     def __len__(self):
@@ -55,6 +58,22 @@ def test_reranking_evaluator(embedder):
         for scores in results.details[score_splitname].values():
             for score in scores.keys():
                 assert any(score.startswith(metric) for metric in ["ndcg"])
+
+
+def test_reranking_evaluator_with_prefix(embedder):
+    evaluator_with_prefix = RerankingEvaluator(
+        val_query_dataset=DummyQueryDataset(),
+        test_query_dataset=DummyQueryDataset(),
+        doc_dataset=DummyDocDataset(),
+        query_prefix=QUERY_PREFIX,
+        doc_prefix=DOC_PREFIX,
+    )
+    evaluator_with_manual_prefix = RerankingEvaluator(
+        val_query_dataset=DummyQueryDataset(prefix=QUERY_PREFIX),
+        test_query_dataset=DummyQueryDataset(prefix=QUERY_PREFIX),
+        doc_dataset=DummyDocDataset(prefix=DOC_PREFIX),
+    )
+    assert evaluator_with_prefix(model=embedder) == evaluator_with_manual_prefix(model=embedder)
 
 
 def test_jsonl_reranking_datasets():

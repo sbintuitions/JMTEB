@@ -30,9 +30,13 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         self,
         val_dataset: ClusteringDataset,
         test_dataset: ClusteringDataset,
+        prefix: str | None = None,
+        random_seed: int | None = None,
     ) -> None:
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
+        self.prefix = prefix
+        self.random_seed = random_seed
         self.main_metric = "v_measure_score"
 
     def __call__(
@@ -44,6 +48,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         logger.info("Converting validation data to embeddings...")
         val_embeddings = model.batch_encode_with_cache(
             [item.text for item in self.val_dataset],
+            prefix=self.prefix,
             cache_path=Path(cache_dir) / "val_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
@@ -56,6 +61,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         else:
             test_embeddings = model.batch_encode_with_cache(
                 [item.text for item in self.test_dataset],
+                prefix=self.prefix,
                 cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
             )
@@ -63,9 +69,11 @@ class ClusteringEvaluator(EmbeddingEvaluator):
 
         n_clusters = len(set(test_labels))
         model_constructors: dict[str, Callable[[], ClusterMixin]] = {
-            "MiniBatchKMeans": lambda: MiniBatchKMeans(n_clusters=n_clusters, n_init="auto"),
+            "MiniBatchKMeans": lambda: MiniBatchKMeans(
+                n_clusters=n_clusters, n_init="auto", random_state=self.random_seed
+            ),
             "AgglomerativeClustering": lambda: AgglomerativeClustering(n_clusters=n_clusters),
-            "BisectingKMeans": lambda: BisectingKMeans(n_clusters=n_clusters),
+            "BisectingKMeans": lambda: BisectingKMeans(n_clusters=n_clusters, random_state=self.random_seed),
             "Birch": lambda: Birch(n_clusters=n_clusters),
         }
 
