@@ -27,6 +27,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             and delimited by comma, e.g., `macro, micro`.
             The first one is specified as the main index.
         classifiers (dict[str, Classifier]): classifiers to be evaluated.
+        prefix (str | None): prefix for sentences. Defaults to None.
     """
 
     def __init__(
@@ -36,6 +37,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         test_dataset: ClassificationDataset,
         average: str = "macro",
         classifiers: dict[str, Classifier] | None = None,
+        prefix: str | None = None,
     ) -> None:
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -49,6 +51,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             for average_name in average
             if average_name.strip().lower() in ("micro", "macro", "samples", "weighted", "binary")
         ] or ["macro"]
+        self.prefix = prefix
         self.main_metric = f"{self.average[0]}_f1"
 
     def __call__(
@@ -60,6 +63,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         logger.info("Encoding training and validation sentences...")
         X_train = model.batch_encode_with_cache(
             [item.text for item in self.train_dataset],
+            prefix=self.prefix,
             cache_path=Path(cache_dir) / "train_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
@@ -67,6 +71,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
 
         X_val = model.batch_encode_with_cache(
             [item.text for item in self.val_dataset],
+            prefix=self.prefix,
             cache_path=Path(cache_dir) / "val_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
@@ -79,6 +84,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         else:
             X_test = model.batch_encode_with_cache(
                 [item.text for item in self.test_dataset],
+                prefix=self.prefix,
                 cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
             )

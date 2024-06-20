@@ -8,11 +8,13 @@ from jmteb.evaluators.clustering.data import JsonlClusteringDataset
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_clustering_model_name"}
 EXPECTED_METRIC_NAMES = {"v_measure_score", "completeness_score", "homogeneity_score"}
 EXPECTED_MODEL_NAMES = {"MiniBatchKMeans", "AgglomerativeClustering", "BisectingKMeans", "Birch"}
+PREFIX = "以下の文を主題により分類する: "
+RANDOM_SEED = 42
 
 
 class DummyClusteringDataset(ClusteringDataset):
-    def __init__(self):
-        self._items = [ClusteringInstance(text=f"dummy text {i}", label=i // 2) for i in range(10)]
+    def __init__(self, prefix: str = ""):
+        self._items = [ClusteringInstance(text=f"{prefix}dummy text {i}", label=i // 2) for i in range(10)]
 
     def __len__(self):
         return len(self._items)
@@ -35,6 +37,21 @@ def test_kmeans_clustering(embedder):
         for clustering_model in expected_clustering_models:
             if clustering_model in results.details[score_splitname]:
                 assert set(results.details[score_splitname][clustering_model].keys()) == expected_metrics
+
+
+def test_clustering_with_prefix(embedder):
+    evaluator_with_prefix = ClusteringEvaluator(
+        val_dataset=DummyClusteringDataset(),
+        test_dataset=DummyClusteringDataset(),
+        prefix=PREFIX,
+        random_seed=RANDOM_SEED,
+    )
+    evaluator_with_manual_prefix = ClusteringEvaluator(
+        val_dataset=DummyClusteringDataset(prefix=PREFIX),
+        test_dataset=DummyClusteringDataset(prefix=PREFIX),
+        random_seed=RANDOM_SEED,
+    )
+    assert evaluator_with_prefix(embedder) == evaluator_with_manual_prefix(embedder)
 
 
 def test_clustering_jsonl_dataset():

@@ -17,3 +17,8 @@ class TestSentenceBertEmbedder:
 
     def test_get_output_dim(self):
         assert self.model.get_output_dim() == OUTPUT_DIM
+
+    def test_tokenizer_kwargs(self):
+        assert self.model.model.tokenizer.sep_token == "[SEP]"
+        model = SentenceBertEmbedder(MODEL_NAME_OR_PATH, tokenizer_kwargs={"sep_token": "<sep>"})
+        assert model.model.tokenizer.sep_token == "<sep>"

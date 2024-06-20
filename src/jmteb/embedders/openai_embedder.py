@@ -60,13 +60,13 @@ class OpenAIEmbedder(TextEmbedder):
             else:
                 self.dim = dim
 
-    def encode(self, text: str | list[str]) -> np.ndarray:
+    def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         kwargs = {"dimensions": self.dim} if self.model != "text-embedding-ada-002" else {}
         # specifying `dimensions` is not allowed for "text-embedding-ada-002"
         if isinstance(text, str):
-            token_ids: list[int] = self.encode_and_truncate_text(text)
+            token_ids: list[int] = self.encode_and_truncate_text(text, prefix)
         else:
-            token_ids: list[list[int]] = [self.encode_and_truncate_text(t) for t in text]
+            token_ids: list[list[int]] = [self.encode_and_truncate_text(t, prefix) for t in text]
         result = np.asarray(
             [
                 data.embedding
@@ -84,10 +84,11 @@ class OpenAIEmbedder(TextEmbedder):
     def get_output_dim(self) -> int:
         return self.dim
 
-    def encode_and_truncate_text(self, text: str) -> list[int]:
+    def encode_and_truncate_text(self, text: str, prefix: str | None = None) -> list[int]:
         # Refer to https://cookbook.openai.com/examples/how_to_count_tokens_with_tiktoken
         # return a list of token IDs
         if not text:
             text = " "
             logger.warning("Found empty string!")
+        # Ignore prefix in OpenAIEmbedder
         return self.encoding.encode(text)[: self.max_token_length]

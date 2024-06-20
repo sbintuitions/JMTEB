@@ -12,7 +12,7 @@ description = "The evaluation scripts for JMTEB (Japanese Massive Text Embedding
 name = "JMTEB"
 packages = [{from = "src", include = "jmteb"}]
 readme = "README.md"
-version = "1.1.1"
+version = "1.2.0"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
@@ -30,6 +30,7 @@ smart-open = "^7.0.1"
 openai = "^1.16.2"
 pytest-mock = "^3.14.0"
 tiktoken = "^0.6.0"
+numpy = "^1.26"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
