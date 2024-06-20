@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from loguru import logger
 import numpy as np
-from sentence_transformers import SentenceTransformer
 import torch
+from loguru import logger
+from sentence_transformers import SentenceTransformer
 
 from jmteb.embedders.base import TextEmbedder
 

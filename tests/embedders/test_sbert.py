@@ -1,6 +1,6 @@
-import numpy as np
-
 from unittest.mock import patch
+
+import numpy as np
 
 from jmteb.embedders.sbert_embedder import SentenceBertEmbedder
 
