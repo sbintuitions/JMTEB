@@ -26,7 +26,7 @@ class TransformersEmbedder(TextEmbedder):
         truncate_dim: int | None = None,
         pooling_config: str | None = "1_Pooling/config.json",
         pooling_mode: str | None = None,
-        **tokenizer_kwargs,
+        tokenizer_kwargs: dict = {},
     ) -> None:
         self.model: PreTrainedModel = AutoModel.from_pretrained(model_name_or_path, trust_remote_code=True)
         self.batch_size = batch_size
@@ -73,7 +73,18 @@ class TransformersEmbedder(TextEmbedder):
 
         self.output_dim = self.pooling.get_sentence_embedding_dimension()
 
-    def encode(self, text: str | list[str], prefix: str | None = None, show_progress_bar: bool = True):
+    def get_output_dim(self) -> int:
+        return self.output_dim
+
+    def encode(
+        self,
+        text: str | list[str],
+        prefix: str | None = None,
+        show_progress_bar: bool = True,
+        convert_to_numpy: bool = True,
+        convert_to_tensor: bool = False,
+    ):
+        assert convert_to_numpy ^ convert_to_tensor
         if isinstance(text, str) or not hasattr(text, "__len__"):
             text = [text]
             text_was_str = True
@@ -100,9 +111,14 @@ class TransformersEmbedder(TextEmbedder):
             all_embeddings = torch.Tensor()
 
         if text_was_str:
-            return all_embeddings.view(-1)
+            res = all_embeddings.view(-1)
         else:
-            return all_embeddings
+            res = all_embeddings
+
+        if convert_to_numpy:
+            return res.numpy()
+        else:
+            return res
 
     def _encode_batch(self, text: list[str], prefix: str | None = None) -> torch.Tensor:
         if prefix:
