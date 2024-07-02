@@ -44,10 +44,9 @@ class TransformersEmbedder(TextEmbedder):
         logger.info(f"{self.model.device=}, {torch.cuda.device_count()=}")
         self.tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_name_or_path, **tokenizer_kwargs)
 
+        self.max_seq_length = getattr(self.model, "max_seq_length", None)
         if max_seq_length:
             self.max_seq_length = max_seq_length
-
-        self.max_seq_length = getattr(self.model, "max_seq_length", None)
         self.add_eos = add_eos
         self.truncate_dim = truncate_dim
 
@@ -84,15 +83,16 @@ class TransformersEmbedder(TextEmbedder):
         convert_to_numpy: bool = True,
         convert_to_tensor: bool = False,
     ):
-        assert convert_to_numpy ^ convert_to_tensor
-        if isinstance(text, str) or not hasattr(text, "__len__"):
+        if not convert_to_numpy ^ convert_to_tensor:
+            raise ValueError("Exactly one of `convert_to_numy` and `convert_to_tensor` must be True")
+        if isinstance(text, str):
             text = [text]
             text_was_str = True
         else:
             text_was_str = False
 
         all_embeddings = []
-        length_sorted_idx = np.argsort([-self._text_length(t) for t in text])
+        length_sorted_idx = np.argsort([-len(t) for t in text])
         text_sorted = [text[idx] for idx in length_sorted_idx]
 
         for start_index in trange(0, len(text), self.batch_size, desc="Batches", disable=not show_progress_bar):
@@ -154,7 +154,7 @@ class TransformersEmbedder(TextEmbedder):
     def _encode_batch_distributed(self, text: list[str], prefix: str | None = None) -> torch.Tensor:
         batch_gather = []
         with self.distributed_state.split_between_processes(text) as t:
-            sentence_embeddings = self._encode_batch(t)
+            sentence_embeddings = self._encode_batch(t, prefix)
             batch_gather.extend(sentence_embeddings.to("cpu"))
 
         batch_embeddings = gather_object(batch_gather)
@@ -175,20 +175,3 @@ class TransformersEmbedder(TextEmbedder):
         else:
             logger.warning("No pooling config found, create a mean pooling!")
             return {"word_embedding_dimension": getattr(self.model.config, "hidden_size"), "pooling_mode": "mean"}
-
-    def _text_length(self, text: list | list[list]) -> int:
-        """
-        https://github.com/UKPLab/sentence-transformers/blob/8ce142bb3e49254536bacd4dd7fa71af9da7cef2/sentence_transformers/SentenceTransformer.py#L1320-L1334
-        Help function to get the length for the input text. Text can be either
-        a list of ints (which means a single text as input), or a tuple of list of ints
-        (representing several text inputs to the model).
-        """
-
-        if isinstance(text, dict):  # {key: value} case
-            return len(next(iter(text.values())))
-        elif not hasattr(text, "__len__"):  # Object has no len() method
-            return 1
-        elif len(text) == 0 or isinstance(text[0], int):  # Empty string or list of ints
-            return len(text)
-        else:
-            return sum([len(t) for t in text])  # Sum of length of individual strings
