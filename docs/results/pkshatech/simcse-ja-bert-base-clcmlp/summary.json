@@ -1,0 +1,62 @@
+{
+    "Classification": {
+        "amazon_counterfactual_classification": {
+            "macro_f1": 0.6748573563374541
+        },
+        "amazon_review_classification": {
+            "macro_f1": 0.5084883283463678
+        },
+        "massive_intent_classification": {
+            "macro_f1": 0.7967050091211104
+        },
+        "massive_scenario_classification": {
+            "macro_f1": 0.871999260591497
+        }
+    },
+    "Reranking": {
+        "esci": {
+            "ndcg@10": 0.914930352019688
+        }
+    },
+    "Retrieval": {
+        "jagovfaqs_22k": {
+            "ndcg@10": 0.41496851385134836
+        },
+        "jaqket": {
+            "ndcg@10": 0.46003031782136106
+        },
+        "mrtydi": {
+            "ndcg@10": 0.1019130492122431
+        },
+        "nlp_journal_abs_intro": {
+            "ndcg@10": 0.4014036990267884
+        },
+        "nlp_journal_title_abs": {
+            "ndcg@10": 0.5962532652358485
+        },
+        "nlp_journal_title_intro": {
+            "ndcg@10": 0.2452584471710635
+        }
+    },
+    "STS": {
+        "jsick": {
+            "spearman": 0.7307715649457595
+        },
+        "jsts": {
+            "spearman": 0.8052279921326252
+        }
+    },
+    "Clustering": {
+        "livedoor_news": {
+            "v_measure_score": 0.4476707933600858
+        },
+        "mewsc16": {
+            "v_measure_score": 0.5029508725037098
+        }
+    },
+    "PairClassification": {
+        "paws_x_ja": {
+            "binary_f1": 0.6239830208701805
+        }
+    }
+}
