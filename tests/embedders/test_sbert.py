@@ -28,3 +28,9 @@ class TestSentenceBertEmbedder:
         model = SentenceBertEmbedder(MODEL_NAME_OR_PATH, model_kwargs={"torch_dtype": torch.float16})
         assert model.convert_to_tensor
         assert model.encode("任意のテキスト").dtype is torch.float16
+
+    def test_bf16(self):
+        # As numpy doesn't support native bfloat16, add a test case for bf16
+        model = SentenceBertEmbedder(MODEL_NAME_OR_PATH, model_kwargs={"torch_dtype": torch.bfloat16})
+        assert model.convert_to_tensor
+        assert model.encode("任意のテキスト").dtype is torch.bfloat16
