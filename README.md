@@ -4,6 +4,8 @@
 
 This is an easy-to-use evaluation script designed for JMTEB evaluation.
 
+[JMTEB leaderboard](leaderboard) is here. A guidance for submission is coming soon.
+
 ## Quick start
 
 ```bash
