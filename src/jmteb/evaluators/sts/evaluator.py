@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from os import PathLike
 from pathlib import Path
 from typing import Callable
@@ -103,9 +104,11 @@ class STSEvaluator(EmbeddingEvaluator):
         embeddings1: Tensor, embeddings2: Tensor, golden_scores: list, similarity_func: Callable
     ) -> dict[str, float]:
         test_sim_score = similarity_func(embeddings1, embeddings2).cpu()
+        pearson = pearsonr(golden_scores, test_sim_score)[0]
+        spearman = spearmanr(golden_scores, test_sim_score)[0]
         return {
-            "pearson": pearsonr(golden_scores, test_sim_score)[0],
-            "spearman": spearmanr(golden_scores, test_sim_score)[0],
+            "pearson": pearson if not math.isnan(pearson) else 0.0,
+            "spearman": spearman if not math.isnan(spearman) else 0.0,
         }
 
     def _convert_to_embeddings(
