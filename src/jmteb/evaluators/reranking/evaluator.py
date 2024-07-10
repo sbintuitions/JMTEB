@@ -55,6 +55,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
         cache_dir: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
     ) -> EvaluationResults:
+        model.set_output_tensor()
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
@@ -121,8 +122,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
     def _compute_metrics(
         self,
         query_dataset: RerankingQueryDataset,
-        query_embeddings: np.ndarray,
-        doc_embeddings: np.ndarray,
+        query_embeddings: np.ndarray | Tensor,
+        doc_embeddings: np.ndarray | Tensor,
         dist_func: Callable[[Tensor, Tensor], Tensor],
     ) -> dict[str, float]:
         doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
@@ -135,7 +136,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
             for i, item in enumerate(query_dataset):
                 query_embedding = convert_to_tensor(query_embeddings[i], device=device)
                 doc_embedding = convert_to_tensor(
-                    np.array([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]),
+                    torch.stack([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]),
                     device=device,
                 )
                 similarity = dist_func(query_embedding, doc_embedding)

@@ -66,6 +66,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         cache_dir: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
     ) -> EvaluationResults:
+        model.set_output_tensor()
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
@@ -133,8 +134,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
     def _compute_metrics(
         self,
         query_dataset: RetrievalQueryDataset,
-        query_embeddings: np.ndarray,
-        doc_embeddings: np.ndarray,
+        query_embeddings: np.ndarray | Tensor,
+        doc_embeddings: np.ndarray | Tensor,
         dist_func: Callable[[Tensor, Tensor], Tensor],
     ) -> dict[str, dict[str, float]]:
         results: dict[str, float] = {}

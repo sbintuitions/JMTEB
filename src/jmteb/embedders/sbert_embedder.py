@@ -17,9 +17,18 @@ class SentenceBertEmbedder(TextEmbedder):
         normalize_embeddings: bool = False,
         max_seq_length: int | None = None,
         add_eos: bool = False,
+        truncate_dim: int | None = None,
+        model_kwargs: dict | None = None,
         tokenizer_kwargs: dict | None = None,
     ) -> None:
-        self.model = SentenceTransformer(model_name_or_path, trust_remote_code=True, tokenizer_kwargs=tokenizer_kwargs)
+        model_kwargs = self._model_kwargs_parser(model_kwargs)
+        self.model = SentenceTransformer(
+            model_name_or_path,
+            trust_remote_code=True,
+            truncate_dim=truncate_dim,
+            model_kwargs=model_kwargs,  # https://github.com/UKPLab/sentence-transformers/blob/84f69fee6dcde023f46a8807e89bc99a7700ba82/sentence_transformers/SentenceTransformer.py#L81-L105  # noqa: E501
+            tokenizer_kwargs=tokenizer_kwargs,
+        )
         if max_seq_length:
             self.model.max_seq_length = max_seq_length
 
@@ -29,13 +38,19 @@ class SentenceBertEmbedder(TextEmbedder):
         self.max_seq_length = getattr(self.model, "max_seq_length", None)
         self.add_eos = add_eos
 
+        if "torch_dtype" in model_kwargs:
+            self.set_output_tensor()
+        else:
+            self.set_output_np()
+
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         if self.add_eos:
             text = self._add_eos_func(text)
         return self.model.encode(
             text,
             prompt=prefix,
-            convert_to_numpy=True,
+            convert_to_numpy=self.convert_to_numpy,
+            convert_to_tensor=self.convert_to_tensor,
             batch_size=self.batch_size,
             device=self.device,
             normalize_embeddings=self.normalize_embeddings,

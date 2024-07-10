@@ -25,6 +25,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: pytest.Parser):
 
 
 class DummyTextEmbedder(TextEmbedder):
+    def __init__(self, model_kwargs: dict | None = None) -> None:
+        self.model_kwargs = self._model_kwargs_parser(model_kwargs)
+        self.convert_to_tensor = self.model_kwargs.get("torch_dtype", None) is None
+        self.convert_to_numpy = not self.convert_to_tensor
+
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         if isinstance(text, str):
             batch_size = 1
