@@ -147,8 +147,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
                 doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
 
                 device = "cuda" if torch.cuda.is_available() else "cpu"
-                query_embeddings = convert_to_tensor(query_embeddings, device=device)
-                doc_embeddings_chunk = convert_to_tensor(doc_embeddings_chunk, device=device)
+                query_embeddings = to_tensor(query_embeddings, device=device)
+                doc_embeddings_chunk = to_tensor(doc_embeddings_chunk, device=device)
                 similarity = dist_func(query_embeddings, doc_embeddings_chunk)
 
                 top_k = min(self.max_top_k, similarity.shape[1])  # in case the corpus is smaller than max_top_k
@@ -229,7 +229,7 @@ def ndcg_at_k(relevant_docs: list[list[T]], top_hits: list[list[T]], k: int) -> 
     return total_ndcg_scores / len(relevant_docs)
 
 
-def convert_to_tensor(embeddings: np.ndarray | Tensor, device: str) -> Tensor:
+def to_tensor(embeddings: np.ndarray | Tensor, device: str) -> Tensor:
     if not isinstance(embeddings, Tensor):
         embeddings = torch.tensor(embeddings)
     if len(embeddings.shape) == 1:
