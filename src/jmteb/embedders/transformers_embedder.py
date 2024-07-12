@@ -26,9 +26,13 @@ class TransformersEmbedder(TextEmbedder):
         truncate_dim: int | None = None,
         pooling_config: str | None = "1_Pooling/config.json",
         pooling_mode: str | None = None,
+        model_kwargs: dict = {},
         tokenizer_kwargs: dict = {},
     ) -> None:
-        self.model: PreTrainedModel = AutoModel.from_pretrained(model_name_or_path, trust_remote_code=True)
+        model_kwargs = self._model_kwargs_parser(model_kwargs)
+        self.model: PreTrainedModel = AutoModel.from_pretrained(
+            model_name_or_path, trust_remote_code=True, **model_kwargs
+        )
         self.batch_size = batch_size
         if not device and torch.cuda.is_available():
             self.device = "cuda"
@@ -70,7 +74,15 @@ class TransformersEmbedder(TextEmbedder):
             include_prompt=pooling_config.get("include_prompt", True),
         )
 
-        self.output_dim = self.pooling.get_sentence_embedding_dimension()
+        if self.truncate_dim:
+            self.output_dim = min(self.pooling.get_sentence_embedding_dimension(), self.truncate_dim)
+        else:
+            self.output_dim = self.pooling.get_sentence_embedding_dimension()
+
+        if "torch_dtype" in model_kwargs:
+            self.set_output_tensor()
+        else:
+            self.set_output_numpy()
 
     def get_output_dim(self) -> int:
         return self.output_dim
@@ -80,11 +92,7 @@ class TransformersEmbedder(TextEmbedder):
         text: str | list[str],
         prefix: str | None = None,
         show_progress_bar: bool = True,
-        convert_to_numpy: bool = True,
-        convert_to_tensor: bool = False,
     ):
-        if not convert_to_numpy ^ convert_to_tensor:
-            raise ValueError("Exactly one of `convert_to_numy` and `convert_to_tensor` must be True")
         if isinstance(text, str):
             text = [text]
             text_was_str = True
@@ -115,7 +123,7 @@ class TransformersEmbedder(TextEmbedder):
         else:
             res = all_embeddings
 
-        if convert_to_numpy:
+        if self.convert_to_numpy:
             return res.numpy()
         else:
             return res

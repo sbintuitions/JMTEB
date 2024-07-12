@@ -55,6 +55,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
         cache_dir: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
     ) -> EvaluationResults:
+        model.set_output_tensor()
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
@@ -121,8 +122,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
     def _compute_metrics(
         self,
         query_dataset: RerankingQueryDataset,
-        query_embeddings: np.ndarray,
-        doc_embeddings: np.ndarray,
+        query_embeddings: np.ndarray | Tensor,
+        doc_embeddings: np.ndarray | Tensor,
         dist_func: Callable[[Tensor, Tensor], Tensor],
     ) -> dict[str, float]:
         doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
@@ -133,9 +134,9 @@ class RerankingEvaluator(EmbeddingEvaluator):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             reranked_docs_list = []
             for i, item in enumerate(query_dataset):
-                query_embedding = convert_to_tensor(query_embeddings[i], device=device)
-                doc_embedding = convert_to_tensor(
-                    np.array([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]),
+                query_embedding = to_tensor(query_embeddings[i], device=device)
+                doc_embedding = to_tensor(
+                    torch.stack([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]),
                     device=device,
                 )
                 similarity = dist_func(query_embedding, doc_embedding)
@@ -179,7 +180,7 @@ def ndcg_at_k(
     return total_ndcg_scores / len(retrieved_docs_list)
 
 
-def convert_to_tensor(embeddings: np.ndarray | Tensor, device: str) -> Tensor:
+def to_tensor(embeddings: np.ndarray | Tensor, device: str) -> Tensor:
     if not isinstance(embeddings, Tensor):
         embeddings = torch.tensor(embeddings)
     if len(embeddings.shape) == 1:

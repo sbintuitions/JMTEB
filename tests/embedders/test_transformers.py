@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from jmteb.embedders.transformers_embedder import TransformersEmbedder
 
@@ -27,3 +28,14 @@ class TestTransformersEmbedder:
         assert self.model.tokenizer.sep_token == "[SEP]"
         model = TransformersEmbedder(MODEL_NAME_OR_PATH, tokenizer_kwargs={"sep_token": "<sep>"})
         assert model.tokenizer.sep_token == "<sep>"
+
+    def test_model_kwargs(self):
+        model = TransformersEmbedder(MODEL_NAME_OR_PATH, model_kwargs={"torch_dtype": torch.float16})
+        assert model.convert_to_tensor
+        assert model.encode("任意のテキスト").dtype is torch.float16
+
+    def test_bf16(self):
+        # As numpy doesn't support native bfloat16, add a test case for bf16
+        model = TransformersEmbedder(MODEL_NAME_OR_PATH, model_kwargs={"torch_dtype": torch.bfloat16})
+        assert model.convert_to_tensor
+        assert model.encode("任意のテキスト").dtype is torch.bfloat16
