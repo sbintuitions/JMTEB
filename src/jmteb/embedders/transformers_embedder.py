@@ -82,7 +82,7 @@ class TransformersEmbedder(TextEmbedder):
         if "torch_dtype" in model_kwargs:
             self.set_output_tensor()
         else:
-            self.set_output_np()
+            self.set_output_numpy()
 
     def get_output_dim(self) -> int:
         return self.output_dim

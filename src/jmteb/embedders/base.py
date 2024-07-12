@@ -138,6 +138,6 @@ class TextEmbedder(ABC):
         self.convert_to_numpy = False
         self.convert_to_tensor = True
 
-    def set_output_np(self):
+    def set_output_numpy(self):
         self.convert_to_numpy = True
         self.convert_to_tensor = False

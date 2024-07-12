@@ -41,7 +41,7 @@ class SentenceBertEmbedder(TextEmbedder):
         if "torch_dtype" in model_kwargs:
             self.set_output_tensor()
         else:
-            self.set_output_np()
+            self.set_output_numpy()
 
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         if self.add_eos:
