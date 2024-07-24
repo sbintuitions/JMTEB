@@ -8,6 +8,7 @@ from jmteb.evaluators.retrieval import (
 from jmteb.evaluators.retrieval.data import (
     JsonlRetrievalDocDataset,
     JsonlRetrievalQueryDataset,
+    RetrievalPrediction,
 )
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}
@@ -19,6 +20,7 @@ DOC_PREFIX = "ドキュメント: "
 class DummyDocDataset(RetrievalDocDataset):
     def __init__(self, prefix: str = ""):
         self._items = [RetrievalDoc(id=str(i), text=f"{prefix}dummy document {i}") for i in range(30)]
+        self._build_idx_docid_mapping("_items")
 
     def __len__(self):
         return len(self._items)
@@ -58,6 +60,23 @@ def test_retrieval_evaluator(embedder):
         for scores in results.details[score_splitname].values():
             for score in scores.keys():
                 assert any(score.startswith(metric) for metric in ["accuracy", "mrr", "ndcg"])
+
+
+def test_retrieval_evaluator_with_predictions(embedder):
+    dummy_query_dataset = DummyQueryDataset()
+    dummy_doc_dataset = DummyDocDataset()
+    evaluator = RetrievalEvaluator(
+        val_query_dataset=dummy_query_dataset,
+        test_query_dataset=dummy_query_dataset,
+        doc_dataset=dummy_doc_dataset,
+        accuracy_at_k=[1, 3, 5, 10],
+        ndcg_at_k=[1, 3, 5],
+        doc_chunk_size=3,
+        log_predictions=True,
+    )
+    results = evaluator(model=embedder)
+    assert [p.query for p in results.predictions] == [q.query for q in dummy_query_dataset]
+    assert all([isinstance(p, RetrievalPrediction) for p in results.predictions])
 
 
 def test_retrieval_evaluator_with_prefix(embedder):

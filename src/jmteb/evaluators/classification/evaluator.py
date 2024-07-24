@@ -11,7 +11,7 @@ from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
 from .classifiers import Classifier, KnnClassifier, LogRegClassifier
-from .data import ClassificationDataset
+from .data import ClassificationDataset, ClassificationPrediction
 
 
 class ClassificationEvaluator(EmbeddingEvaluator):
@@ -28,6 +28,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             The first one is specified as the main index.
         classifiers (dict[str, Classifier]): classifiers to be evaluated.
         prefix (str | None): prefix for sentences. Defaults to None.
+        log_predictions (bool): whether to log predictions of each datapoint.
     """
 
     def __init__(
@@ -38,6 +39,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         average: str = "macro",
         classifiers: dict[str, Classifier] | None = None,
         prefix: str | None = None,
+        log_predictions: bool = False,
     ) -> None:
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -52,6 +54,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             if average_name.strip().lower() in ("micro", "macro", "samples", "weighted", "binary")
         ] or ["macro"]
         self.prefix = prefix
+        self.log_predictions = log_predictions
         self.main_metric = f"{self.average[0]}_f1"
 
     def __call__(
@@ -119,6 +122,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
                 "val_scores": val_results,
                 "test_scores": test_results,
             },
+            predictions=self._format_predictions(self.test_dataset, y_pred) if self.log_predictions else None,
         )
 
     @staticmethod
@@ -128,3 +132,14 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         for average_method in average:
             classifier_results[f"{average_method}_f1"] = f1_score(y_true, y_pred, average=average_method)
         return classifier_results
+
+    @staticmethod
+    def _format_predictions(dataset: ClassificationDataset, y_pred: np.ndarray) -> list[ClassificationPrediction]:
+        texts = [item.text for item in dataset]
+        y_true = [item.label for item in dataset]
+        y_pred = y_pred.tolist()
+        assert len(texts) == len(y_true) == len(y_pred)
+        return [
+            ClassificationPrediction(text=text, label=label, prediction=pred)
+            for text, label, pred in zip(texts, y_true, y_pred)
+        ]

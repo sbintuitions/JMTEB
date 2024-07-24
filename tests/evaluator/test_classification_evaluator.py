@@ -90,3 +90,22 @@ def test_classification_jsonl_dataset_equal():
     assert dummy_jsonl_dataset_1 == dummy_jsonl_dataset_2
     dummy_jsonl_dataset_2.label_key = "LABEL"
     assert dummy_jsonl_dataset_1 != dummy_jsonl_dataset_2
+
+
+def test_classification_prediction_logging(embedder):
+    dataset = DummyClassificationDataset()
+    evaluator = ClassificationEvaluator(
+        train_dataset=dataset,
+        val_dataset=dataset,
+        test_dataset=dataset,
+        classifiers={
+            "logreg": LogRegClassifier(),
+            "knn": KnnClassifier(k=2, distance_metric="cosine"),
+        },
+        log_predictions=True,
+    )
+    results = evaluator(model=embedder)
+    assert isinstance(results.predictions, list)
+    assert [p.text for p in results.predictions] == [d.text for d in dataset]
+    assert [p.label for p in results.predictions] == [d.label for d in dataset]
+    assert all([isinstance(p.prediction, int) for p in results.predictions])
