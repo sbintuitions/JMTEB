@@ -19,11 +19,13 @@ class EvaluationResults:
         metric_value (float): Value of the main metric.
         details (dict[str, Any]): Details of the evaluation.
             This included some additional metrics or values that are used to derive the main metric.
+        predictions (list[Any]): Predictions (such as, (text, y_true, y_pred))
     """
 
     metric_name: str
     metric_value: float
     details: dict[str, Any]
+    predictions: list[Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
