@@ -40,6 +40,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         query_prefix (str | None): prefix for queries. Defaults to None.
         doc_prefix (str | None): prefix for documents. Defaults to None.
         log_predictions (bool): whether to log predictions of each datapoint. Defaults to False.
+        top_n_docs_to_log (int): log only top n documents that are predicted as relevant. Defaults to 5.
     """
 
     def __init__(
@@ -53,6 +54,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         query_prefix: str | None = None,
         doc_prefix: str | None = None,
         log_predictions: bool = False,
+        top_n_docs_to_log: int = 5,
     ) -> None:
         self.val_query_dataset = val_query_dataset
         self.test_query_dataset = test_query_dataset
@@ -68,6 +70,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         self.query_prefix = query_prefix
         self.doc_prefix = doc_prefix
         self.log_predictions = log_predictions
+        self.top_n_docs_to_log = top_n_docs_to_log
 
     def __call__(
         self,
@@ -183,7 +186,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
 
         predictions = (
-            self._format_predictions(query_dataset, self.doc_dataset, retrieved_doc_ids)
+            self._format_predictions(query_dataset, self.doc_dataset, retrieved_doc_ids, self.top_n_docs_to_log)
             if self.log_predictions
             else None
         )
@@ -201,6 +204,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         query_dataset: RetrievalQueryDataset,
         doc_dataset: RetrievalDocDataset,
         retrieved_doc_ids: list[list],
+        top_n_to_log: int,
     ) -> list[RetrievalPrediction]:
         predictions = []
         for q, pred_docids in zip(query_dataset, retrieved_doc_ids):
@@ -208,6 +212,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             golden_docs: list[RetrievalDoc] = [
                 doc_dataset[doc_dataset.docid_to_idx[docid]] for docid in q.relevant_docs
             ]
+            pred_docids = pred_docids[:top_n_to_log]
             pred_docs: list[RetrievalDoc] = [
                 doc_dataset[doc_dataset.docid_to_idx[pred_docid]] for pred_docid in pred_docids
             ]

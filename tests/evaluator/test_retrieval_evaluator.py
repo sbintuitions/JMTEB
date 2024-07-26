@@ -15,6 +15,7 @@ EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metr
 EXPECTED_DIST_FUNC_NAMES = {"cosine_similarity", "euclidean_distance", "dot_score"}
 QUERY_PREFIX = "クエリ: "
 DOC_PREFIX = "ドキュメント: "
+TOP_N_DOCS_TO_LOG = 4
 
 
 class DummyDocDataset(RetrievalDocDataset):
@@ -73,10 +74,15 @@ def test_retrieval_evaluator_with_predictions(embedder):
         ndcg_at_k=[1, 3, 5],
         doc_chunk_size=3,
         log_predictions=True,
+        top_n_docs_to_log=TOP_N_DOCS_TO_LOG,
     )
     results = evaluator(model=embedder)
     assert [p.query for p in results.predictions] == [q.query for q in dummy_query_dataset]
     assert all([isinstance(p, RetrievalPrediction) for p in results.predictions])
+    for p in results.predictions:
+        assert isinstance(p, RetrievalPrediction)
+        assert len(p.predicted_relevant_docs) == TOP_N_DOCS_TO_LOG
+        assert all([isinstance(doc, RetrievalDoc) for doc in p.predicted_relevant_docs])
 
 
 def test_retrieval_evaluator_with_prefix(embedder):
