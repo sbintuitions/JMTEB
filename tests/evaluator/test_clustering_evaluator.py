@@ -2,6 +2,7 @@ from jmteb.evaluators.clustering import (
     ClusteringDataset,
     ClusteringEvaluator,
     ClusteringInstance,
+    ClusteringPrediction,
 )
 from jmteb.evaluators.clustering.data import JsonlClusteringDataset
 
@@ -37,6 +38,14 @@ def test_kmeans_clustering(embedder):
         for clustering_model in expected_clustering_models:
             if clustering_model in results.details[score_splitname]:
                 assert set(results.details[score_splitname][clustering_model].keys()) == expected_metrics
+
+
+def test_clustering_with_predictions(embedder):
+    evaluator = ClusteringEvaluator(
+        val_dataset=DummyClusteringDataset(), test_dataset=DummyClusteringDataset(), log_predictions=True
+    )
+    results = evaluator(model=embedder)
+    assert all([isinstance(p, ClusteringPrediction) for p in results.predictions])
 
 
 def test_clustering_with_prefix(embedder):

@@ -1,2 +1,2 @@
-from .data import ClusteringDataset, ClusteringInstance
+from .data import ClusteringDataset, ClusteringInstance, ClusteringPrediction
 from .evaluator import ClusteringEvaluator
