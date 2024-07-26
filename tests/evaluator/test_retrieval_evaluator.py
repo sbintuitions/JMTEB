@@ -2,13 +2,13 @@ from jmteb.evaluators.retrieval import (
     RetrievalDoc,
     RetrievalDocDataset,
     RetrievalEvaluator,
+    RetrievalPrediction,
     RetrievalQuery,
     RetrievalQueryDataset,
 )
 from jmteb.evaluators.retrieval.data import (
     JsonlRetrievalDocDataset,
     JsonlRetrievalQueryDataset,
-    RetrievalPrediction,
 )
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}

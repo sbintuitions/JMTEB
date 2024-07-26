@@ -2,6 +2,7 @@ from jmteb.evaluators.classification import (
     ClassificationDataset,
     ClassificationEvaluator,
     ClassificationInstance,
+    ClassificationPrediction,
     KnnClassifier,
     LogRegClassifier,
 )
@@ -42,6 +43,21 @@ def test_classification_evaluator(embedder):
     for score_splitname in ("val_scores", "test_scores"):
         for value in results.details[score_splitname].values():
             assert set(value.keys()) == expected_metrics
+
+
+def test_classification_evaluator_with_predictions(embedder):
+    evaluator = ClassificationEvaluator(
+        train_dataset=DummyClassificationDataset(),
+        val_dataset=DummyClassificationDataset(),
+        test_dataset=DummyClassificationDataset(),
+        classifiers={
+            "logreg": LogRegClassifier(),
+            "knn": KnnClassifier(k=2, distance_metric="cosine"),
+        },
+        log_predictions=True,
+    )
+    results = evaluator(model=embedder)
+    assert all([isinstance(result, ClassificationPrediction) for result in results.predictions])
 
 
 def test_classification_evaluator_with_prefix(embedder):
