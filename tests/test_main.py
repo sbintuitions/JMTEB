@@ -26,6 +26,7 @@ def test_main_cli():
             "--embedder.model_kwargs", '{"torch_dtype": "torch.float16"}',
             "--save_dir", f,
             "--eval_include", '["jsts"]',
+            "--log_predictions", "true",
         ]
         # fmt: on
         result = subprocess.run(command)
