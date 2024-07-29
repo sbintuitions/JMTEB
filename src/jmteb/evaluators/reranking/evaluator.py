@@ -14,7 +14,13 @@ from torch import Tensor
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
-from .data import RerankingDocDataset, RerankingQueryDataset
+from .data import (
+    RerankingDoc,
+    RerankingDocDataset,
+    RerankingPrediction,
+    RerankingQuery,
+    RerankingQueryDataset,
+)
 
 T = TypeVar("T")
 
@@ -30,6 +36,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
         ndcg_at_k (list[int] | None): top k documents to consider in NDCG (Normalized Documented Cumulative Gain).
         query_prefix (str | None): prefix for queries. Defaults to None.
         doc_prefix (str | None): prefix for documents. Defaults to None.
+        log_predictions (bool): whether to log predictions of each datapoint. Defaults to False.
+        top_n_docs_to_log (int): log only top n documents. Defaults to 5.
     """
 
     def __init__(
@@ -40,6 +48,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
         ndcg_at_k: list[int] | None = None,
         query_prefix: str | None = None,
         doc_prefix: str | None = None,
+        log_predictions: bool = False,
+        top_n_docs_to_log: int = 5,
     ) -> None:
         self.test_query_dataset = test_query_dataset
         self.val_query_dataset = val_query_dataset
@@ -48,6 +58,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
         self.main_metric = f"ndcg@{self.ndcg_at_k[0]}"
         self.query_prefix = query_prefix
         self.doc_prefix = doc_prefix
+        self.log_predictions = log_predictions
+        self.top_n_docs_to_log = top_n_docs_to_log
 
     def __call__(
         self,
@@ -91,7 +103,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         val_results = {}
         for dist_name, dist_func in dist_functions.items():
-            val_results[dist_name] = self._compute_metrics(
+            val_results[dist_name], _ = self._compute_metrics(
                 query_dataset=self.val_query_dataset,
                 query_embeddings=val_query_embeddings,
                 doc_embeddings=doc_embeddings,
@@ -100,14 +112,13 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
         optimal_dist_name = sorted_val_results[0][0]
-        test_results = {
-            optimal_dist_name: self._compute_metrics(
-                query_dataset=self.test_query_dataset,
-                query_embeddings=test_query_embeddings,
-                doc_embeddings=doc_embeddings,
-                dist_func=dist_functions[optimal_dist_name],
-            )
-        }
+        scores, reranked_docs_list = self._compute_metrics(
+            query_dataset=self.test_query_dataset,
+            query_embeddings=test_query_embeddings,
+            doc_embeddings=doc_embeddings,
+            dist_func=dist_functions[optimal_dist_name],
+        )
+        test_results = {optimal_dist_name: scores}
 
         return EvaluationResults(
             metric_name=self.main_metric,
@@ -117,6 +128,13 @@ class RerankingEvaluator(EmbeddingEvaluator):
                 "val_scores": val_results,
                 "test_scores": test_results,
             },
+            predictions=(
+                self._format_predictions(
+                    self.test_query_dataset, self.doc_dataset, reranked_docs_list, self.top_n_docs_to_log
+                )
+                if self.log_predictions
+                else None
+            ),
         )
 
     def _compute_metrics(
@@ -125,7 +143,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
         query_embeddings: np.ndarray | Tensor,
         doc_embeddings: np.ndarray | Tensor,
         dist_func: Callable[[Tensor, Tensor], Tensor],
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], list[list[str | int]]]:
         doc_indices = {item.id: i for i, item in enumerate(self.doc_dataset)}
 
         results: dict[str, float] = {}
@@ -156,7 +174,34 @@ class RerankingEvaluator(EmbeddingEvaluator):
         for k in self.ndcg_at_k:
             results[f"ndcg@{k}"] = ndcg_at_k(retrieved_docs_list, relevance_scores_list, reranked_docs_list, k)
 
-        return results
+        return results, reranked_docs_list
+
+    @staticmethod
+    def _format_predictions(
+        query_dataset: RerankingQueryDataset,
+        doc_dataset: RerankingDocDataset,
+        reranked_docs_list: list[list],
+        top_n_to_log: int,
+    ) -> list[RerankingPrediction]:
+        predictions = []
+        for q, pred_docids in zip(query_dataset, reranked_docs_list):
+            q: RerankingQuery
+            golden_docs: list[RerankingDoc] = [
+                doc_dataset[doc_dataset.docid_to_idx[docid]] for docid in q.retrieved_docs
+            ]
+            pred_docids = pred_docids[:top_n_to_log]
+            pred_docs: list[RerankingDoc] = [
+                doc_dataset[doc_dataset.docid_to_idx[pred_docid]] for pred_docid in pred_docids
+            ]
+            logger.info(f"{golden_docs=}")
+            logger.info(f"{pred_docs=}")
+            prediction = RerankingPrediction(
+                query=q.query,
+                relevant_docs=golden_docs,
+                reranked_relevant_docs=pred_docs,
+            )
+            predictions.append(prediction)
+        return predictions
 
 
 def ndcg_at_k(

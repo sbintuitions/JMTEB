@@ -22,6 +22,13 @@ class RerankingDoc:
     text: str
 
 
+@dataclass
+class RerankingPrediction:
+    query: str
+    relevant_docs: list[RerankingDoc]
+    reranked_relevant_docs: list[RerankingDoc]
+
+
 class RerankingQueryDataset(ABC):
     @abstractmethod
     def __len__(self):
@@ -46,6 +53,23 @@ class RerankingDocDataset(ABC):
 
     def __eq__(self, __value: object) -> bool:
         return False
+
+    def _build_idx_docid_mapping(self, dataset_attr_name: str = "dataset") -> None:
+        self.idx_to_docid: dict = {}
+        self.docid_to_idx: dict = {}
+        id_key: str = getattr(self, "id_key", None)
+        dataset = getattr(self, dataset_attr_name)
+        if id_key:
+            for idx, doc_dict in enumerate(dataset):
+                self.idx_to_docid[idx] = doc_dict[id_key]
+                self.docid_to_idx[doc_dict[id_key]] = idx
+        elif isinstance(dataset[0], RerankingDoc):
+            for idx, doc in enumerate(dataset):
+                doc: RerankingDoc
+                self.idx_to_docid[idx] = doc.id
+                self.docid_to_idx[doc.id] = idx
+        else:
+            raise ValueError(f"Invalid dataset type: list[{type(dataset[0])}]")
 
 
 class HfRerankingQueryDataset(RerankingQueryDataset):
@@ -131,6 +155,7 @@ class HfRerankingDocDataset(RerankingDocDataset):
         self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.id_key = id_key
         self.text_key = text_key
+        self._build_idx_docid_mapping()
 
     def __len__(self):
         return len(self.dataset)
@@ -157,6 +182,7 @@ class JsonlRerankingDocDataset(RerankingDocDataset):
         self.dataset = corpus
         self.id_key = id_key
         self.text_key = text_key
+        self._build_idx_docid_mapping()
 
     def __len__(self):
         return len(self.dataset)
