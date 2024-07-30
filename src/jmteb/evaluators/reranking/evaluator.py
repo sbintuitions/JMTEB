@@ -135,9 +135,11 @@ class RerankingEvaluator(EmbeddingEvaluator):
             reranked_docs_list = []
             for i, item in enumerate(query_dataset):
                 query_embedding = to_tensor(query_embeddings[i], device=device)
-                doc_embedding = to_tensor(
-                    torch.stack([doc_embeddings[doc_indices[retrieved_doc]] for retrieved_doc in item.retrieved_docs]),
-                    device=device,
+                doc_embedding = torch.stack(
+                    [
+                        Tensor(doc_embeddings[doc_indices[retrieved_doc]]).to(device=device)
+                        for retrieved_doc in item.retrieved_docs
+                    ]
                 )
                 similarity = dist_func(query_embedding, doc_embedding)
 
