@@ -1,6 +1,7 @@
 from .data import (
     RetrievalDoc,
     RetrievalDocDataset,
+    RetrievalPrediction,
     RetrievalQuery,
     RetrievalQueryDataset,
 )

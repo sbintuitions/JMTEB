@@ -13,6 +13,13 @@ class ClusteringInstance:
     label: int
 
 
+@dataclass
+class ClusteringPrediction:
+    text: str
+    label: int
+    prediction: int
+
+
 class ClusteringDataset(ABC):
     @abstractmethod
     def __len__(self):

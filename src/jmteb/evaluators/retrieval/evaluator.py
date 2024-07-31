@@ -15,7 +15,13 @@ from torch import Tensor
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
-from .data import RetrievalDocDataset, RetrievalQueryDataset
+from .data import (
+    RetrievalDoc,
+    RetrievalDocDataset,
+    RetrievalPrediction,
+    RetrievalQuery,
+    RetrievalQueryDataset,
+)
 
 T = TypeVar("T")
 
@@ -33,6 +39,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         accuracy_at_k (list[int] | None): accuracy in top k hits.
         query_prefix (str | None): prefix for queries. Defaults to None.
         doc_prefix (str | None): prefix for documents. Defaults to None.
+        log_predictions (bool): whether to log predictions of each datapoint. Defaults to False.
+        top_n_docs_to_log (int): log only top n documents that are predicted as relevant. Defaults to 5.
     """
 
     def __init__(
@@ -45,6 +53,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         ndcg_at_k: list[int] | None = None,
         query_prefix: str | None = None,
         doc_prefix: str | None = None,
+        log_predictions: bool = False,
+        top_n_docs_to_log: int = 5,
     ) -> None:
         self.val_query_dataset = val_query_dataset
         self.test_query_dataset = test_query_dataset
@@ -59,6 +69,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
         self.query_prefix = query_prefix
         self.doc_prefix = doc_prefix
+        self.log_predictions = log_predictions
+        self.top_n_docs_to_log = top_n_docs_to_log
 
     def __call__(
         self,
@@ -103,7 +115,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
         val_results = {}
         for dist_name, dist_func in dist_functions.items():
-            val_results[dist_name] = self._compute_metrics(
+            val_results[dist_name], _ = self._compute_metrics(
                 query_dataset=self.val_query_dataset,
                 query_embeddings=val_query_embeddings,
                 doc_embeddings=doc_embeddings,
@@ -112,14 +124,13 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
         optimal_dist_name = sorted_val_results[0][0]
 
-        test_results = {
-            optimal_dist_name: self._compute_metrics(
-                query_dataset=self.test_query_dataset,
-                query_embeddings=test_query_embeddings,
-                doc_embeddings=doc_embeddings,
-                dist_func=dist_functions[optimal_dist_name],
-            )
-        }
+        test_scores, test_predictions = self._compute_metrics(
+            query_dataset=self.test_query_dataset,
+            query_embeddings=test_query_embeddings,
+            doc_embeddings=doc_embeddings,
+            dist_func=dist_functions[optimal_dist_name],
+        )
+        test_results = {optimal_dist_name: test_scores}
 
         return EvaluationResults(
             metric_name=self.main_metric,
@@ -129,6 +140,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
                 "val_scores": val_results,
                 "test_scores": test_results,
             },
+            predictions=test_predictions,
         )
 
     def _compute_metrics(
@@ -137,9 +149,9 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         query_embeddings: np.ndarray | Tensor,
         doc_embeddings: np.ndarray | Tensor,
         dist_func: Callable[[Tensor, Tensor], Tensor],
-    ) -> dict[str, dict[str, float]]:
+    ) -> tuple[dict[str, dict[str, float]], list[RetrievalPrediction]]:
         results: dict[str, float] = {}
-
+        predictions: list[RetrievalPrediction] = [] if self.log_predictions else None
         with tqdm.tqdm(total=len(doc_embeddings), desc="Retrieval doc chunks") as pbar:
             top_k_indices_chunks: list[np.ndarray] = []
             top_k_scores_chunks: list[np.ndarray] = []
@@ -173,13 +185,44 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         golden_doc_ids = [item.relevant_docs for item in query_dataset]
         retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
 
+        predictions = (
+            self._format_predictions(query_dataset, self.doc_dataset, retrieved_doc_ids, self.top_n_docs_to_log)
+            if self.log_predictions
+            else None
+        )
+
         for k in self.accuracy_at_k:
             results[f"accuracy@{k}"] = accuracy_at_k(golden_doc_ids, retrieved_doc_ids, k)
         for k in self.ndcg_at_k:
             results[f"ndcg@{k}"] = ndcg_at_k(golden_doc_ids, retrieved_doc_ids, k)
         results[f"mrr@{self.max_top_k}"] = mrr_at_k(golden_doc_ids, retrieved_doc_ids, self.max_top_k)
 
-        return results
+        return results, predictions
+
+    @staticmethod
+    def _format_predictions(
+        query_dataset: RetrievalQueryDataset,
+        doc_dataset: RetrievalDocDataset,
+        retrieved_doc_ids: list[list],
+        top_n_to_log: int,
+    ) -> list[RetrievalPrediction]:
+        predictions = []
+        for q, pred_docids in zip(query_dataset, retrieved_doc_ids):
+            q: RetrievalQuery
+            golden_docs: list[RetrievalDoc] = [
+                doc_dataset[doc_dataset.docid_to_idx[docid]] for docid in q.relevant_docs
+            ]
+            pred_docids = pred_docids[:top_n_to_log]
+            pred_docs: list[RetrievalDoc] = [
+                doc_dataset[doc_dataset.docid_to_idx[pred_docid]] for pred_docid in pred_docids
+            ]
+            prediction = RetrievalPrediction(
+                query=q.query,
+                relevant_docs=golden_docs,
+                predicted_relevant_docs=pred_docs,
+            )
+            predictions.append(prediction)
+        return predictions
 
 
 def accuracy_at_k(relevant_docs: list[list[T]], top_hits: list[list[T]], k: int) -> float:
