@@ -109,6 +109,8 @@ class STSEvaluator(EmbeddingEvaluator):
         embeddings1: Tensor, embeddings2: Tensor, golden_scores: list, similarity_func: Callable
     ) -> tuple[dict[str, float], list[float]]:
         sim_scores = similarity_func(embeddings1, embeddings2).cpu()
+        if isinstance(sim_scores, Tensor) and sim_scores.dtype is torch.bfloat16:
+            sim_scores = sim_scores.float()
         pearson = pearsonr(golden_scores, sim_scores)[0]
         spearman = spearmanr(golden_scores, sim_scores)[0]
         return {
