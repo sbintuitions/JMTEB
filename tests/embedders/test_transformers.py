@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from jmteb.embedders.transformers_embedder import TransformersEmbedder
@@ -13,12 +12,12 @@ class TestTransformersEmbedder:
 
     def test_encode(self):
         embeddings = self.model.encode("任意のテキスト")
-        assert isinstance(embeddings, np.ndarray)
+        assert isinstance(embeddings, torch.Tensor)
         assert embeddings.shape == (OUTPUT_DIM,)
 
     def test_encode_list(self):
         embeddings = self.model.encode(["任意のテキスト", "hello world", "埋め込み"])
-        assert isinstance(embeddings, np.ndarray)
+        assert isinstance(embeddings, torch.Tensor)
         assert embeddings.shape == (3, OUTPUT_DIM)
 
     def test_get_output_dim(self):
@@ -31,11 +30,9 @@ class TestTransformersEmbedder:
 
     def test_model_kwargs(self):
         model = TransformersEmbedder(MODEL_NAME_OR_PATH, model_kwargs={"torch_dtype": torch.float16})
-        assert model.convert_to_tensor
         assert model.encode("任意のテキスト").dtype is torch.float16
 
     def test_bf16(self):
         # As numpy doesn't support native bfloat16, add a test case for bf16
         model = TransformersEmbedder(MODEL_NAME_OR_PATH, model_kwargs={"torch_dtype": torch.bfloat16})
-        assert model.convert_to_tensor
         assert model.encode("任意のテキスト").dtype is torch.bfloat16
