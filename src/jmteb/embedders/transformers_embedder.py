@@ -149,7 +149,7 @@ class TransformersEmbedder(TextEmbedder):
         prefix: str | None = None,
         dtype: Literal["float32", "float16", "bfloat16"] | None = None,
     ) -> torch.Tensor:
-        if self.distributed_state:
+        if self.distributed_state and len(text) >= self.distributed_state.num_processes:
             embeddings = self._encode_distributed(text, prefix)
         else:
             embeddings = self._encode(text, prefix)
@@ -212,7 +212,6 @@ class TransformersEmbedder(TextEmbedder):
         with self.distributed_state.split_between_processes(text) as t:
             sentence_embeddings = self._encode(t, prefix)
             batch_gather.extend(torch.Tensor(sentence_embeddings).to("cpu"))
-
         batch_embeddings = gather_object(batch_gather)
         return torch.stack(batch_embeddings)
 
