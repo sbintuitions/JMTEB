@@ -7,6 +7,7 @@ from typing import Callable, TypeVar
 
 import numpy as np
 import torch
+from torch import distributed as dist
 import tqdm
 from loguru import logger
 from torch import Tensor
@@ -149,7 +150,14 @@ class RerankingEvaluator(EmbeddingEvaluator):
         results: dict[str, float] = {}
 
         with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            
+            if torch.cuda.is_available():
+                if dist.is_available():
+                    device = f'cuda:{dist.get_rank()}'
+                else:
+                    device = 'cuda'
+            else:
+                device = 'cpu'
             reranked_docs_list = []
             for i, item in enumerate(query_dataset):
                 query_embedding = to_tensor(query_embeddings[i], device=device)
