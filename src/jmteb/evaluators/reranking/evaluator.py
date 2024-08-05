@@ -150,7 +150,6 @@ class RerankingEvaluator(EmbeddingEvaluator):
         results: dict[str, float] = {}
 
         with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
-
             if torch.cuda.is_available():
                 if dist.is_available():
                     device = f"cuda:{dist.get_rank()}"
