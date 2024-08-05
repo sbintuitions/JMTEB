@@ -161,11 +161,11 @@ class RetrievalEvaluator(EmbeddingEvaluator):
 
                 if torch.cuda.is_available():
                     if dist.is_available():
-                        device = f'cuda:{dist.get_rank()}'
+                        device = f"cuda:{dist.get_rank()}"
                     else:
-                        device = 'cuda'
+                        device = "cuda"
                 else:
-                    device = 'cpu'
+                    device = "cpu"
 
                 query_embeddings = to_tensor(query_embeddings, device=device)
                 doc_embeddings_chunk = to_tensor(doc_embeddings_chunk, device=device)
