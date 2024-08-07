@@ -17,6 +17,7 @@ class TextEmbedder(ABC):
 
     convert_to_tensor: bool
     convert_to_numpy: bool
+    _chunk_size: int = 262144  # 2^18
 
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray | torch.Tensor:
         """Convert a text string or a list of texts to embedding.
@@ -40,7 +41,7 @@ class TextEmbedder(ABC):
         text_list: list[str],
         save_path: str | PathLike[str],
         prefix: str | None = None,
-        batch_size: int = 64,
+        batch_size: int = 262144,
         dtype: str = "float32",
     ) -> np.memmap | torch.Tensor:
         """
@@ -81,7 +82,6 @@ class TextEmbedder(ABC):
         prefix: str | None = None,
         cache_path: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
-        batch_size: int = 64,
         dtype: str = "float32",
     ) -> np.ndarray | torch.Tensor:
         """
@@ -92,7 +92,6 @@ class TextEmbedder(ABC):
             prefix (str, optional): the prefix to use for encoding. Default to None.
             cache_path (str, optional): path to save the embeddings. Defaults to None.
             overwrite_cache (bool, optional): whether to overwrite the cache. Defaults to False.
-            batch_size (int): batch size. Defaults to 64.
             dtype (str, optional): data type. Defaults to "float32".
         """
 
@@ -106,7 +105,7 @@ class TextEmbedder(ABC):
 
         logger.info(f"Encoding and saving embeddings to {cache_path}")
         embeddings = self._batch_encode_and_save_on_disk(
-            text_list, cache_path, prefix=prefix, batch_size=batch_size, dtype=dtype
+            text_list, cache_path, prefix=prefix, batch_size=self._chunk_size, dtype=dtype
         )
         return embeddings
 
