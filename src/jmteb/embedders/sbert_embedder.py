@@ -41,6 +41,7 @@ class SentenceBertEmbedder(TextEmbedder):
         truncate_dim: int | None = None,
         model_kwargs: dict | None = None,
         tokenizer_kwargs: dict | None = None,
+        chunk_size_factor: int = 4,
     ) -> None:
         model_kwargs = self._model_kwargs_parser(model_kwargs)
         self.model = SentenceTransformer(
@@ -60,6 +61,7 @@ class SentenceBertEmbedder(TextEmbedder):
         self.add_eos = add_eos
         self.set_output_numpy()
         self.model.eval()
+        self.chunk_size_factor = 4
 
     # override
     def _batch_encode_and_save_on_disk(
@@ -92,7 +94,7 @@ class SentenceBertEmbedder(TextEmbedder):
         with sbert_multi_proc_pool(self.model) as pool:
             with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
                 chunk_size = min(
-                    self.batch_size * 4,
+                    self.batch_size * self.chunk_size_factor,
                     np.ceil(num_samples / len(pool["processes"])),
                 )
                 logger.info(f"chunk size={chunk_size}")
