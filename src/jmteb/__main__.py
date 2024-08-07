@@ -37,6 +37,10 @@ def main(
             dataset_name=eval_name,
             task_name=evaluator.__class__.__name__.replace("Evaluator", ""),
         )
+        if getattr(evaluator, "log_predictions", False):
+            score_recorder.record_predictions(
+                metrics, eval_name, evaluator.__class__.__name__.replace("Evaluator", "")
+            )
 
         logger.info(f"Results for {eval_name}\n{json.dumps(metrics.as_dict(), indent=4, ensure_ascii=False)}")
 

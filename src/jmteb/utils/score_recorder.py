@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 import json
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -30,6 +31,12 @@ class JsonScoreRecorder(AbstractScoreRecorder):
         with open(filename, "w") as fout:
             json.dump(scores, fout, indent=4, ensure_ascii=False)
 
+    @staticmethod
+    def save_prediction_to_jsonl(predictions: list[Any], filename: str | PathLike[str]) -> None:
+        with open(filename, "w") as fout:
+            for prediction in predictions:
+                fout.write(json.dumps(asdict(prediction), ensure_ascii=False) + "\n")
+
     def record_task_scores(self, scores: EvaluationResults, dataset_name: str, task_name: str) -> None:
         if not self.save_dir:
             return
@@ -38,6 +45,13 @@ class JsonScoreRecorder(AbstractScoreRecorder):
 
         self.scores[task_name][dataset_name] = scores
         self.save_to_json(self.scores[task_name][dataset_name].as_dict(), save_filename)
+
+    def record_predictions(self, results: EvaluationResults, dataset_name: str, task_name: str) -> None:
+        if not self.save_dir:
+            return
+        save_filename = Path(self.save_dir) / task_name / f"predictions_{dataset_name}.jsonl"
+        save_filename.parent.mkdir(parents=True, exist_ok=True)
+        self.save_prediction_to_jsonl(results.predictions, save_filename)
 
     def record_summary(self):
         if not self.save_dir:
