@@ -8,6 +8,7 @@ import tqdm
 from accelerate import PartialState
 from accelerate.utils import gather_object
 from loguru import logger
+import numpy as np
 from sentence_transformers.models import Pooling
 from torch import Tensor
 from transformers import AutoModel, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
@@ -37,6 +38,7 @@ class TransformersEmbedder(TextEmbedder):
         self.model: PreTrainedModel = AutoModel.from_pretrained(
             model_name_or_path, trust_remote_code=True, **model_kwargs
         )
+        self.dtype = getattr(self.model.config, "torch_dtype", torch.float32)
         logger.info(f"Model loaded:\n{self.model}")
         self.batch_size = batch_size
         if not device and torch.cuda.is_available():
@@ -57,11 +59,17 @@ class TransformersEmbedder(TextEmbedder):
         else:
             self.model.to(self.device)
         logger.info(f"{self.model.device=}, {torch.cuda.device_count()=}")
-        self.tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_name_or_path, **tokenizer_kwargs)
 
         self.max_seq_length = getattr(self.model, "max_seq_length", None)
         if max_seq_length:
             self.max_seq_length = max_seq_length
+
+        if self.max_seq_length:
+            tokenizer_kwargs.update({"model_max_length": self.max_seq_length})
+        self.tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
+            model_name_or_path, trust_remote_code=True, **tokenizer_kwargs
+        )
+
         self.add_eos = add_eos
         self.truncate_dim = truncate_dim
 
@@ -113,7 +121,14 @@ class TransformersEmbedder(TextEmbedder):
 
         if Path(cache_path).exists() and not overwrite_cache:
             logger.info(f"Loading embeddings from {cache_path}")
-            return torch.load(cache_path)
+            # for all numpy operations, use fp32 as it can be converted to fp16 or bf16 losslessly, but not vice versa
+            # embeddings = np.memmap(cache_path, dtype=dtype, mode="r", shape=(len(text_list), self.get_output_dim()))
+            if self.dtype is torch.bfloat16:
+                dtype = torch.float16
+            else:
+                dtype = self.dtype
+            return torch.load(cache_path).to(dtype=dtype)
+            # return Tensor(embeddings).to(dtype=self.dtype)
 
         logger.info(f"Encoding and saving embeddings to {cache_path}")
         embeddings = self._batch_encode_and_save_on_disk(
@@ -131,16 +146,23 @@ class TransformersEmbedder(TextEmbedder):
     ) -> torch.Tensor:
         num_samples = len(text_list)
         output_dim = self.get_output_dim()
-        embeddings = torch.empty((num_samples, output_dim), dtype=self._torch_dtype_parser(dtype))
 
+        # Save with `np.memmap` to prevent out of memory, and float32 precision to prevent information loss
+        try:
+            os.remove(save_path)
+        except OSError:
+            pass
+
+        embeddings = np.memmap(save_path, dtype=dtype, mode="w+", shape=(num_samples, output_dim))
         with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
             for i in range(0, num_samples, batch_size):
                 batch = text_list[i : i + batch_size]
                 batch_embeddings: torch.Tensor = self.encode(batch, prefix)
-                embeddings[i : i + batch_size] = batch_embeddings
+                logger.info(f"{batch_embeddings.shape=}")
+                if batch_embeddings.shape != (len(batch), output_dim):
+                    logger.info(f"size check: {batch_embeddings.shape=}, expected {(len(batch), output_dim)}")
+                embeddings[i : i + len(batch)] = batch_embeddings.float().cpu().numpy()
                 pbar.update(len(batch))
-
-        torch.save(embeddings, save_path)
         return embeddings
 
     def encode(
@@ -153,7 +175,7 @@ class TransformersEmbedder(TextEmbedder):
             embeddings = self._encode_distributed(text, prefix)
         else:
             embeddings = self._encode(text, prefix)
-        return embeddings.to(dtype=dtype)
+        return embeddings.to(dtype=dtype, device="cpu")
 
     def _encode(self, text: str | list[str], prefix: str | None = None) -> torch.Tensor:
         if isinstance(text, str):
@@ -180,6 +202,7 @@ class TransformersEmbedder(TextEmbedder):
             encoded_input = self.tokenizer(text, padding=True, truncation=True, return_tensors="pt").to(
                 self.model.device
             )
+
             model_output = self.model(**encoded_input)
             last_hidden_states = model_output["last_hidden_state"]
             features = {
@@ -211,7 +234,7 @@ class TransformersEmbedder(TextEmbedder):
         batch_gather = []
         with self.distributed_state.split_between_processes(text) as t:
             sentence_embeddings = self._encode(t, prefix)
-            batch_gather.extend(torch.Tensor(sentence_embeddings).to("cpu"))
+            batch_gather.extend(torch.Tensor(sentence_embeddings).cpu())
         batch_embeddings = gather_object(batch_gather)
         return torch.stack(batch_embeddings)
 
