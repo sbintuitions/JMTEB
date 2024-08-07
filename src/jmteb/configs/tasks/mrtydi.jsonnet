@@ -26,6 +26,7 @@
           name: 'mrtydi-corpus',
         },
       },
+      "doc_chunk_size":10000
     },
   },
 }

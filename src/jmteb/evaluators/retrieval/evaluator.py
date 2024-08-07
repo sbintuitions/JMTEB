@@ -11,6 +11,7 @@ import torch
 import tqdm
 from loguru import logger
 from torch import Tensor
+from torch import distributed as dist
 
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
@@ -158,7 +159,14 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             for offset in range(0, len(doc_embeddings), self.doc_chunk_size):
                 doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
 
-                device = "cuda" if torch.cuda.is_available() else "cpu"
+                if torch.cuda.is_available():
+                    if dist.is_available():
+                        device = f"cuda:{dist.get_rank()}"
+                    else:
+                        device = "cuda"
+                else:
+                    device = "cpu"
+
                 query_embeddings = to_tensor(query_embeddings, device=device)
                 doc_embeddings_chunk = to_tensor(doc_embeddings_chunk, device=device)
                 similarity = dist_func(query_embeddings, doc_embeddings_chunk)
