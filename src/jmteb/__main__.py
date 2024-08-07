@@ -32,6 +32,8 @@ def main(
             cache_dir = Path(save_dir) / "cache" / eval_name
 
         metrics = evaluator(text_embedder, cache_dir=cache_dir, overwrite_cache=overwrite_cache)
+        if not metrics:
+            continue
         score_recorder.record_task_scores(
             scores=metrics,
             dataset_name=eval_name,

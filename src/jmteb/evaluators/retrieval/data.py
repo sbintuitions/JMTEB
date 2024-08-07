@@ -7,6 +7,7 @@ import datasets
 import smart_open
 from loguru import logger
 from pydantic.dataclasses import dataclass
+import torch.distributed
 
 
 @dataclass
@@ -83,9 +84,26 @@ class HfRetrievalQueryDataset(RetrievalQueryDataset):
         self.path = path
         self.split = split
         self.name = name
-        self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
+        # self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.query_key = query_key
         self.relevant_docs_key = relevant_docs_key
+        self._build_dataset(path, split, name)
+
+    def _build_dataset(self, path, split, name):
+        if torch.distributed.is_initialized():
+            rank = torch.distributed.get_rank()
+            self.rank_cache_path = f"/tmp/{path}_{split}_{name}.dataset"
+            if rank == 0:
+                self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
+                self.dataset.save_to_disk(self.rank_cache_path)
+                logger.critical("Loaded dataset at rank 0")
+                torch.distributed.barrier()
+            else:
+                torch.distributed.barrier()
+                self.dataset = datasets.load_from_disk(self.rank_cache_path)
+                logger.critical(f"Loaded dataset at rank {rank}")
+        else:
+            self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
 
     def __len__(self):
         return len(self.dataset)

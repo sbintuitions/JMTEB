@@ -159,7 +159,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
                 device = "cpu"
             reranked_docs_list = []
             for i, item in enumerate(query_dataset):
-                query_embedding = to_tensor(query_embeddings[i], device=device)
+                query_embedding = to_tensor(query_embeddings[i], device=device).float()
                 doc_embedding = torch.stack(
                     [
                         Tensor(doc_embeddings[doc_indices[retrieved_doc]]).to(device=device)

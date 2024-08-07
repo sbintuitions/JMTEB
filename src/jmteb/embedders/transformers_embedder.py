@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 import torch
+import torch.distributed as dist
 import tqdm
 from accelerate import PartialState
 from accelerate.utils import gather_object
@@ -112,7 +113,6 @@ class TransformersEmbedder(TextEmbedder):
         prefix: str | None = None,
         cache_path: str | os.PathLike[str] | None = None,
         overwrite_cache: bool = False,
-        batch_size: int = 64,
         dtype: str = "float32",
     ) -> Tensor:
         if cache_path is None:
@@ -131,9 +131,7 @@ class TransformersEmbedder(TextEmbedder):
             # return Tensor(embeddings).to(dtype=self.dtype)
 
         logger.info(f"Encoding and saving embeddings to {cache_path}")
-        embeddings = self._batch_encode_and_save_on_disk(
-            text_list, cache_path, prefix=prefix, batch_size=batch_size, dtype=dtype
-        )
+        embeddings = self._batch_encode_and_save_on_disk(text_list, cache_path, prefix=prefix, dtype=dtype)
         return embeddings
 
     def _batch_encode_and_save_on_disk(
@@ -141,7 +139,6 @@ class TransformersEmbedder(TextEmbedder):
         text_list: list[str],
         save_path: str | os.PathLike[str],
         prefix: str | None = None,
-        batch_size: int = 64,
         dtype: str = "float32",
     ) -> torch.Tensor:
         num_samples = len(text_list)
@@ -153,16 +150,18 @@ class TransformersEmbedder(TextEmbedder):
         except OSError:
             pass
 
-        embeddings = np.memmap(save_path, dtype=dtype, mode="w+", shape=(num_samples, output_dim))
+        # embeddings = np.memmap(save_path, dtype=dtype, mode="w+", shape=(num_samples, output_dim))
+        embeddings = torch.empty((num_samples, output_dim), dtype=self._torch_dtype_parser(dtype))
         with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
-            for i in range(0, num_samples, batch_size):
-                batch = text_list[i : i + batch_size]
+            for i in range(0, num_samples, self.batch_size):
+                batch = text_list[i : i + self.batch_size]
                 batch_embeddings: torch.Tensor = self.encode(batch, prefix)
                 logger.info(f"{batch_embeddings.shape=}")
                 if batch_embeddings.shape != (len(batch), output_dim):
                     logger.info(f"size check: {batch_embeddings.shape=}, expected {(len(batch), output_dim)}")
-                embeddings[i : i + len(batch)] = batch_embeddings.float().cpu().numpy()
+                embeddings[i : i + len(batch)] = batch_embeddings.cpu()
                 pbar.update(len(batch))
+        torch.save(embeddings, save_path)
         return embeddings
 
     def encode(

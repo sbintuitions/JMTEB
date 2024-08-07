@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 import datasets
 from loguru import logger
 from pydantic.dataclasses import dataclass
+import torch
+import torch.distributed
 
 
 @dataclass
@@ -44,10 +46,28 @@ class HfClassificationDataset(ClassificationDataset):
         self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.text_key = text_key
         self.label_key = label_key
+        self._build_dataset(path, split, name)
+
         if not self.dataset.features[self.label_key].dtype.startswith("int"):
             label_to_int = {label: i for i, label in enumerate(sorted(set(self.dataset[self.label_key])))}
             self.dataset = self.dataset.map(lambda example: {"label": label_to_int[example[label_key]]})
             self.label_to_int = label_to_int
+
+    def _build_dataset(self, path, split, name):
+        if torch.distributed.is_initialized():
+            rank = torch.distributed.get_rank()
+            self.rank_cache_path = f"/tmp/{path}_{split}_{name}.dataset"
+            if rank == 0:
+                self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
+                self.dataset.save_to_disk(self.rank_cache_path)
+                logger.critical("Loaded dataset at rank 0")
+                torch.distributed.barrier()
+            else:
+                torch.distributed.barrier()
+                self.dataset = datasets.load_from_disk(self.rank_cache_path)
+                logger.critical(f"Loaded dataset at rank {rank}")
+        else:
+            self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
 
     def __len__(self):
         return len(self.dataset)
