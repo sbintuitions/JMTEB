@@ -93,10 +93,12 @@ class SentenceBertEmbedder(TextEmbedder):
 
         with sbert_multi_proc_pool(self.model) as pool:
             with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
-                chunk_size = int(min(
-                    self.batch_size * self.chunk_size_factor,
-                    np.ceil(num_samples / len(pool["processes"])),
-                ))
+                chunk_size = int(
+                    min(
+                        self.batch_size * self.chunk_size_factor,
+                        np.ceil(num_samples / len(pool["processes"])),
+                    )
+                )
                 logger.info(f"chunk size={chunk_size}")
                 for i in range(0, num_samples, batch_size):
                     batch: list[str] = text_list[i : i + batch_size]
