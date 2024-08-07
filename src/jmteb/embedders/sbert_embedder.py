@@ -41,7 +41,7 @@ class SentenceBertEmbedder(TextEmbedder):
         truncate_dim: int | None = None,
         model_kwargs: dict | None = None,
         tokenizer_kwargs: dict | None = None,
-        chunk_size_factor: int = 4,
+        chunk_size_factor: int = 128,
     ) -> None:
         model_kwargs = self._model_kwargs_parser(model_kwargs)
         self.model = SentenceTransformer(
@@ -61,7 +61,7 @@ class SentenceBertEmbedder(TextEmbedder):
         self.add_eos = add_eos
         self.set_output_numpy()
         self.model.eval()
-        self.chunk_size_factor = 4
+        self.chunk_size_factor = chunk_size_factor
 
     # override
     def _batch_encode_and_save_on_disk(
