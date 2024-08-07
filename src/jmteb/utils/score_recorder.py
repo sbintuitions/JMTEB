@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 import json
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from dataclasses import asdict
 from os import PathLike
 from pathlib import Path
 from typing import Any
