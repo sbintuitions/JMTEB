@@ -63,6 +63,18 @@ class SentenceBertEmbedder(TextEmbedder):
         self.model.eval()
         self.chunk_size_factor = chunk_size_factor
 
+    def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
+        if self.add_eos:
+            text = self._add_eos_func(text)
+        return self.model.encode(
+            text,
+            prompt=prefix,
+            convert_to_numpy=self.convert_to_numpy,
+            convert_to_tensor=self.convert_to_tensor,
+            batch_size=self.batch_size,
+            normalize_embeddings=self.normalize_embeddings,
+        )
+
     # override
     def _batch_encode_and_save_on_disk(
         self,
