@@ -1,30 +1,9 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from os import PathLike
-from pathlib import Path
-from typing import Optional
-
 import numpy as np
-import torch
-import tqdm
-from loguru import logger
 from sentence_transformers import SentenceTransformer
 
 from jmteb.embedders.base import TextEmbedder
-
-
-@contextmanager
-def sbert_multi_proc_pool(sbert_model: SentenceTransformer, target_devices: Optional[list[str]] = None):
-    pool = sbert_model.start_multi_process_pool(target_devices=target_devices)
-    logger.info("pool of encoding processing: ")
-    for k, v in pool.items():
-        logger.info(f"  {k}: {v}")
-    try:
-        yield pool
-    finally:
-        logger.info("stop pool")
-        sbert_model.stop_multi_process_pool(pool)
 
 
 class SentenceBertEmbedder(TextEmbedder):
@@ -41,7 +20,6 @@ class SentenceBertEmbedder(TextEmbedder):
         truncate_dim: int | None = None,
         model_kwargs: dict | None = None,
         tokenizer_kwargs: dict | None = None,
-        chunk_size_factor: int = 128,
     ) -> None:
         model_kwargs = self._model_kwargs_parser(model_kwargs)
         self.model = SentenceTransformer(
@@ -59,9 +37,11 @@ class SentenceBertEmbedder(TextEmbedder):
         self.normalize_embeddings = normalize_embeddings
         self.max_seq_length = getattr(self.model, "max_seq_length", None)
         self.add_eos = add_eos
-        self.set_output_numpy()
-        self.model.eval()
-        self.chunk_size_factor = chunk_size_factor
+
+        if "torch_dtype" in model_kwargs:
+            self.set_output_tensor()
+        else:
+            self.set_output_numpy()
 
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         if self.add_eos:
@@ -72,62 +52,9 @@ class SentenceBertEmbedder(TextEmbedder):
             convert_to_numpy=self.convert_to_numpy,
             convert_to_tensor=self.convert_to_tensor,
             batch_size=self.batch_size,
+            device=self.device,
             normalize_embeddings=self.normalize_embeddings,
         )
-
-    # override
-    def _batch_encode_and_save_on_disk(
-        self,
-        text_list: list[str],
-        save_path: str | PathLike[str],
-        prefix: str | None = None,
-        batch_size: int = 262144,
-        dtype: str = "float32",
-    ) -> np.memmap:
-        """
-        Encode a list of texts and save the embeddings on disk using memmap.
-
-        Args:
-            text_list (list[str]): list of texts
-            save_path (str): path to save the embeddings
-            prefix (str, optional): the prefix to use for encoding. Default to None.
-            dtype (str, optional): data type. Defaults to "float32".
-            batch_size (int): batch size. Defaults to 262144.
-        """
-        self.set_output_numpy()
-        self.model.eval()
-        logger.info(f"use numpy")
-
-        num_samples = len(text_list)
-        output_dim = self.get_output_dim()
-
-        embeddings = np.memmap(save_path, dtype=dtype, mode="w+", shape=(num_samples, output_dim))
-
-        with sbert_multi_proc_pool(self.model) as pool:
-            with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
-                chunk_size = int(
-                    min(
-                        self.batch_size * self.chunk_size_factor,
-                        np.ceil(num_samples / len(pool["processes"])),
-                    )
-                )
-                logger.info(f"chunk size={chunk_size}")
-                for i in range(0, num_samples, batch_size):
-                    batch: list[str] = text_list[i : i + batch_size]
-                    batch = self._add_eos_func(batch)
-                    batch_embeddings: np.ndarray = self.model.encode_multi_process(
-                        batch,
-                        pool=pool,
-                        prompt=prefix,
-                        chunk_size=chunk_size,
-                        batch_size=self.batch_size,
-                        normalize_embeddings=self.normalize_embeddings,
-                    )
-                    embeddings[i : i + batch_size] = batch_embeddings
-                    pbar.update(len(batch))
-
-        embeddings.flush()
-        return np.memmap(save_path, dtype=dtype, mode="r", shape=(num_samples, output_dim))
 
     def _add_eos_func(self, text: str | list[str]) -> str | list[str]:
         try:
