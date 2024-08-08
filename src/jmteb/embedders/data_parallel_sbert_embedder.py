@@ -91,7 +91,6 @@ class DPSentenceTransformer(SentenceTransformer):
         for start_index in trange(0, len(sentences), batch_size, desc="Batches", disable=not show_progress_bar):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.sbert.tokenize(sentences_batch)
-            features = batch_to_device(features, device)
             features.update(extra_features)
 
             with torch.no_grad():
