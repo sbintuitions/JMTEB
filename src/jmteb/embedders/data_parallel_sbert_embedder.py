@@ -17,6 +17,7 @@ from jmteb.embedders.base import TextEmbedder
 
 
 class DPSentenceTransformer(SentenceTransformer):
+    """SentenceBERT with pytorch torch.nn.DataParallel"""
 
     def __init__(self, sbert_model: SentenceTransformer):
         super(DPSentenceTransformer, self).__init__()
@@ -209,6 +210,7 @@ class DataParallelSentenceBertEmbedder(TextEmbedder):
                     batch_size=batch_size,
                     normalize_embeddings=self.normalize_embeddings,
                 )
+
                 self.batch_size = batch_size
                 return out
 
