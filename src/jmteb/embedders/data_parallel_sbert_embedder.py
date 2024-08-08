@@ -8,7 +8,7 @@ import torch
 from loguru import logger
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings
-from sentence_transformers.util import batch_to_device, truncate_embeddings
+from sentence_transformers.util import truncate_embeddings
 from torch import Tensor
 from tqdm.autonotebook import trange
 
@@ -63,7 +63,8 @@ class DPSentenceTransformer(SentenceTransformer):
                     prompt = self.sbert.prompts[prompt_name]
                 except KeyError:
                     raise ValueError(
-                        f"Prompt name '{prompt_name}' not found in the configured prompts dictionary with keys {list(self.sbert.prompts.keys())!r}."
+                        f"Prompt name '{prompt_name}' not found in the configured "
+                        f"prompts dictionary with keys {list(self.sbert.prompts.keys())!r}."
                     )
             elif self.default_prompt_name is not None:
                 prompt = self.sbert.prompts.get(self.sbert.default_prompt_name, None)
