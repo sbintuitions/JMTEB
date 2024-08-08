@@ -5,6 +5,7 @@ from typing import Literal
 
 import numpy as np
 import torch
+from accelerate.utils import find_executable_batch_size
 from loguru import logger
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.quantization import quantize_embeddings
@@ -167,6 +168,7 @@ class DataParallelSentenceBertEmbedder(TextEmbedder):
         truncate_dim: int | None = None,
         model_kwargs: dict | None = None,
         tokenizer_kwargs: dict | None = None,
+        auto_find_batch_size: bool = True,
     ) -> None:
         model_kwargs = self._model_kwargs_parser(model_kwargs)
         model = SentenceTransformer(
@@ -180,11 +182,12 @@ class DataParallelSentenceBertEmbedder(TextEmbedder):
         self.model = self.dp_model.sbert
         if max_seq_length:
             self.model.max_seq_length = max_seq_length
-
-        self.batch_size = batch_size
+        self.initital_batch_size = batch_size
+        self.batch_size = int(self.initital_batch_size)
         self.normalize_embeddings = normalize_embeddings
         self.max_seq_length = getattr(self.model, "max_seq_length", None)
         self.add_eos = add_eos
+        self.auto_find_batch_size = auto_find_batch_size
 
         if "torch_dtype" in model_kwargs:
             self.set_output_tensor()
@@ -194,14 +197,31 @@ class DataParallelSentenceBertEmbedder(TextEmbedder):
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         if self.add_eos:
             text = self._add_eos_func(text)
-        return self.dp_model.encode(
-            text,
-            prompt=prefix,
-            convert_to_numpy=self.convert_to_numpy,
-            convert_to_tensor=self.convert_to_tensor,
-            batch_size=self.batch_size,
-            normalize_embeddings=self.normalize_embeddings,
-        )
+        if self.auto_find_batch_size:
+            # wrap function
+            @find_executable_batch_size(starting_batch_size=self.batch_size)
+            def _encode_with_auto_batch_size(batch_size, self, text, prefix):
+                out = self.dp_model.encode(
+                    text,
+                    prompt=prefix,
+                    convert_to_numpy=self.convert_to_numpy,
+                    convert_to_tensor=self.convert_to_tensor,
+                    batch_size=batch_size,
+                    normalize_embeddings=self.normalize_embeddings,
+                )
+                self.batch_size = batch_size
+                return out
+
+            return _encode_with_auto_batch_size(self, text, prefix)
+        else:
+            return self.dp_model.encode(
+                text,
+                prompt=prefix,
+                convert_to_numpy=self.convert_to_numpy,
+                convert_to_tensor=self.convert_to_tensor,
+                batch_size=self.batch_size,
+                normalize_embeddings=self.normalize_embeddings,
+            )
 
     def _add_eos_func(self, text: str | list[str]) -> str | list[str]:
         try:
