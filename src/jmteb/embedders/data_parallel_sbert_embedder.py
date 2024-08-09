@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Literal
 
 import numpy as np
@@ -43,7 +44,8 @@ class DPSentenceTransformer(SentenceTransformer):
     ) -> list[Tensor] | np.ndarray | Tensor:
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = logger.level in (logging.INFO, logging.DEBUG)
+            logger.remove()
+            logger.add(sys.stderr, level="INFO")
 
         if convert_to_tensor:
             convert_to_numpy = False
