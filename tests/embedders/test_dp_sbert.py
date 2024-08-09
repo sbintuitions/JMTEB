@@ -9,7 +9,7 @@ MODEL_NAME_OR_PATH = "prajjwal1/bert-tiny"
 OUTPUT_DIM = 128
 
 
-class TestSentenceBertEmbedder:
+class TestDPSentenceBertEmbedder:
     def setup_class(cls):
         cls.model = DataParallelSentenceBertEmbedder(MODEL_NAME_OR_PATH)
 

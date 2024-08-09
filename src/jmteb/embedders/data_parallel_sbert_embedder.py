@@ -227,7 +227,7 @@ class DataParallelSentenceBertEmbedder(TextEmbedder):
 
     def _add_eos_func(self, text: str | list[str]) -> str | list[str]:
         try:
-            eos_token = getattr(self.model.savetokenizer, "eos_token")
+            eos_token = getattr(self.model.tokenizer, "eos_token")
         except AttributeError:
             return text
 
