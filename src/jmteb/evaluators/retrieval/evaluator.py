@@ -160,7 +160,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
                 doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
 
                 if torch.cuda.is_available():
-                    if dist.is_available():
+                    if dist.is_torchelastic_launched():
                         device = f"cuda:{dist.get_rank()}"
                     else:
                         device = "cuda"
