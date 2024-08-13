@@ -6,7 +6,7 @@ from typing import Literal
 import torch
 import tqdm
 from accelerate import PartialState
-from accelerate.utils import find_executable_batch_size, gather_object
+from accelerate.utils import gather_object
 from loguru import logger
 from sentence_transformers.models import Pooling
 from torch import Tensor
@@ -33,7 +33,6 @@ class TransformersEmbedder(TextEmbedder):
         encode_method_name: str | None = None,
         encode_method_text_argument: str = "text",
         encode_method_prefix_argument: str = "prefix",
-        auto_find_batch_size: bool = True,
     ) -> None:
         self.batch_size = batch_size
         self.init_batch_size = batch_size
@@ -108,8 +107,6 @@ class TransformersEmbedder(TextEmbedder):
         self.encode_method_text_argument = encode_method_text_argument
         self.encode_method_prefix_argument = encode_method_prefix_argument
 
-        self.auto_find_batch_size = auto_find_batch_size
-
     def get_output_dim(self) -> int:
         return self.output_dim
 
@@ -138,24 +135,9 @@ class TransformersEmbedder(TextEmbedder):
         if is_main_process():
             logger.info(f"Encoding and saving embeddings to {cache_path}")
 
-        if self.auto_find_batch_size:
-            self.batch_size = self.init_batch_size
-
-            @find_executable_batch_size(starting_batch_size=self.init_batch_size)
-            def _auto_find_batch_size(batch_size, self, text_list, save_path, prefix, dtype):
-                embeddings = self._batch_encode_and_save_on_disk(
-                    text_list=text_list, save_path=save_path, prefix=prefix, dtype=dtype, batch_size=batch_size
-                )
-                self.batch_size = batch_size
-                return embeddings
-
-            return _auto_find_batch_size(self, text_list=text_list, save_path=cache_path, prefix=prefix, dtype=dtype)
-
-        else:
-            embeddings = self._batch_encode_and_save_on_disk(
-                text_list, cache_path, prefix=prefix, dtype=dtype, batch_size=self.batch_size
-            )
-
+        embeddings = self._batch_encode_and_save_on_disk(
+            text_list, cache_path, prefix=prefix, dtype=dtype, batch_size=self.batch_size
+        )
         return embeddings
 
     def _batch_encode_and_save_on_disk(
