@@ -6,7 +6,7 @@ from typing import Literal
 import torch
 import tqdm
 from accelerate import PartialState
-from accelerate.utils import gather_object, find_executable_batch_size
+from accelerate.utils import find_executable_batch_size, gather_object
 from loguru import logger
 from sentence_transformers.models import Pooling
 from torch import Tensor
