@@ -14,6 +14,7 @@ from torch import distributed as dist
 
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.utils.dist import is_main_process
 
 from .data import (
     RerankingDoc,
@@ -67,7 +68,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
         model: TextEmbedder,
         cache_dir: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
-    ) -> EvaluationResults:
+    ) -> EvaluationResults | None:
         model.set_output_tensor()
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
@@ -93,6 +94,9 @@ class RerankingEvaluator(EmbeddingEvaluator):
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
         )
+
+        if not is_main_process():
+            return
 
         logger.info("Start reranking")
 
@@ -151,7 +155,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
             if torch.cuda.is_available():
-                if dist.is_available():
+                if dist.is_initialized():
                     device = f"cuda:{dist.get_rank()}"
                 else:
                     device = "cuda"
@@ -159,7 +163,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
                 device = "cpu"
             reranked_docs_list = []
             for i, item in enumerate(query_dataset):
-                query_embedding = to_tensor(query_embeddings[i], device=device).float()
+                query_embedding = to_tensor(query_embeddings[i], device=device)
                 doc_embedding = torch.stack(
                     [
                         Tensor(doc_embeddings[doc_indices[retrieved_doc]]).to(device=device)
@@ -202,8 +206,6 @@ class RerankingEvaluator(EmbeddingEvaluator):
             pred_docs: list[RerankingDoc] = [
                 doc_dataset[doc_dataset.docid_to_idx[pred_docid]] for pred_docid in pred_docids
             ]
-            logger.info(f"{golden_docs=}")
-            logger.info(f"{pred_docs=}")
             prediction = RerankingPrediction(
                 query=q.query,
                 relevant_docs=golden_docs,

@@ -4,17 +4,16 @@ from pathlib import Path
 from typing import Literal
 
 import torch
-import torch.distributed as dist
 import tqdm
 from accelerate import PartialState
-from accelerate.utils import gather_object
+from accelerate.utils import gather_object, find_executable_batch_size
 from loguru import logger
-import numpy as np
 from sentence_transformers.models import Pooling
 from torch import Tensor
 from transformers import AutoModel, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
 
 from jmteb.embedders.base import TextEmbedder
+from jmteb.utils.dist import is_main_process
 
 
 class TransformersEmbedder(TextEmbedder):
@@ -34,19 +33,14 @@ class TransformersEmbedder(TextEmbedder):
         encode_method_name: str | None = None,
         encode_method_text_argument: str = "text",
         encode_method_prefix_argument: str = "prefix",
+        auto_find_batch_size: bool = True,
     ) -> None:
-        model_kwargs = self._model_kwargs_parser(model_kwargs)
-        self.model: PreTrainedModel = AutoModel.from_pretrained(
-            model_name_or_path, trust_remote_code=True, **model_kwargs
-        )
-        self.dtype = getattr(self.model.config, "torch_dtype", torch.float32)
-        logger.info(f"Model loaded:\n{self.model}")
         self.batch_size = batch_size
+        self.init_batch_size = batch_size
         if not device and torch.cuda.is_available():
             self.device = "cuda"
         else:
             self.device = device
-        self.normalize_embeddings = normalize_embeddings
 
         self.distributed_state = PartialState() if torch.cuda.device_count() > 1 and self.device == "cuda" else None
         if self.distributed_state and hasattr(self.distributed_state, "num_processes"):
@@ -55,6 +49,16 @@ class TransformersEmbedder(TextEmbedder):
             ), f"""`batch_size` should be an integer multiple of the number of available GPUs,
                  but got {batch_size=}, {torch.cuda.device_count()=}. Note that `batch_size` is global batch size."""
         logger.info(f"Distribution state: {self.distributed_state}")
+
+        model_kwargs = self._model_kwargs_parser(model_kwargs)
+        self.model: PreTrainedModel = AutoModel.from_pretrained(
+            model_name_or_path, trust_remote_code=True, **model_kwargs
+        )
+        self.dtype = getattr(self.model.config, "torch_dtype", torch.float32)
+
+        if is_main_process():
+            logger.info(f"Model loaded:\n{self.model}")
+        self.normalize_embeddings = normalize_embeddings
         if self.distributed_state:
             self.model.to(self.distributed_state.device)
         else:
@@ -104,6 +108,8 @@ class TransformersEmbedder(TextEmbedder):
         self.encode_method_text_argument = encode_method_text_argument
         self.encode_method_prefix_argument = encode_method_prefix_argument
 
+        self.auto_find_batch_size = auto_find_batch_size
+
     def get_output_dim(self) -> int:
         return self.output_dim
 
@@ -116,22 +122,40 @@ class TransformersEmbedder(TextEmbedder):
         dtype: str = "float32",
     ) -> Tensor:
         if cache_path is None:
-            logger.info("Encoding embeddings")
+            if is_main_process():
+                logger.info("Encoding embeddings")
             return self.encode(text_list, prefix=prefix).to(self._torch_dtype_parser(dtype))
 
         if Path(cache_path).exists() and not overwrite_cache:
-            logger.info(f"Loading embeddings from {cache_path}")
-            # for all numpy operations, use fp32 as it can be converted to fp16 or bf16 losslessly, but not vice versa
-            # embeddings = np.memmap(cache_path, dtype=dtype, mode="r", shape=(len(text_list), self.get_output_dim()))
+            if is_main_process():
+                logger.info(f"Loading embeddings from {cache_path}")
             if self.dtype is torch.bfloat16:
                 dtype = torch.float16
             else:
                 dtype = self.dtype
             return torch.load(cache_path).to(dtype=dtype)
-            # return Tensor(embeddings).to(dtype=self.dtype)
 
-        logger.info(f"Encoding and saving embeddings to {cache_path}")
-        embeddings = self._batch_encode_and_save_on_disk(text_list, cache_path, prefix=prefix, dtype=dtype)
+        if is_main_process():
+            logger.info(f"Encoding and saving embeddings to {cache_path}")
+
+        if self.auto_find_batch_size:
+            self.batch_size = self.init_batch_size
+
+            @find_executable_batch_size(starting_batch_size=self.init_batch_size)
+            def _auto_find_batch_size(batch_size, self, text_list, save_path, prefix, dtype):
+                embeddings = self._batch_encode_and_save_on_disk(
+                    text_list=text_list, save_path=save_path, prefix=prefix, dtype=dtype, batch_size=batch_size
+                )
+                self.batch_size = batch_size
+                return embeddings
+
+            return _auto_find_batch_size(self, text_list=text_list, save_path=cache_path, prefix=prefix, dtype=dtype)
+
+        else:
+            embeddings = self._batch_encode_and_save_on_disk(
+                text_list, cache_path, prefix=prefix, dtype=dtype, batch_size=self.batch_size
+            )
+
         return embeddings
 
     def _batch_encode_and_save_on_disk(
@@ -140,25 +164,15 @@ class TransformersEmbedder(TextEmbedder):
         save_path: str | os.PathLike[str],
         prefix: str | None = None,
         dtype: str = "float32",
+        batch_size: int = 64,
     ) -> torch.Tensor:
         num_samples = len(text_list)
         output_dim = self.get_output_dim()
-
-        # Save with `np.memmap` to prevent out of memory, and float32 precision to prevent information loss
-        try:
-            os.remove(save_path)
-        except OSError:
-            pass
-
-        # embeddings = np.memmap(save_path, dtype=dtype, mode="w+", shape=(num_samples, output_dim))
         embeddings = torch.empty((num_samples, output_dim), dtype=self._torch_dtype_parser(dtype))
         with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
-            for i in range(0, num_samples, self.batch_size):
-                batch = text_list[i : i + self.batch_size]
+            for i in range(0, num_samples, batch_size):
+                batch = text_list[i : i + batch_size]
                 batch_embeddings: torch.Tensor = self.encode(batch, prefix)
-                logger.info(f"{batch_embeddings.shape=}")
-                if batch_embeddings.shape != (len(batch), output_dim):
-                    logger.info(f"size check: {batch_embeddings.shape=}, expected {(len(batch), output_dim)}")
                 embeddings[i : i + len(batch)] = batch_embeddings.cpu()
                 pbar.update(len(batch))
         torch.save(embeddings, save_path)
@@ -198,9 +212,8 @@ class TransformersEmbedder(TextEmbedder):
             if prefix:
                 text = [prefix + t for t in text]
 
-            encoded_input = self.tokenizer(text, padding=True, truncation=True, return_tensors="pt").to(
-                self.model.device
-            )
+            encoded_input = self.tokenize(text, padding=True)
+            encoded_input = {k: v.to(self.model.device) for k, v in encoded_input.items()}
 
             model_output = self.model(**encoded_input)
             last_hidden_states = model_output["last_hidden_state"]
@@ -213,7 +226,7 @@ class TransformersEmbedder(TextEmbedder):
                 features["token_type_ids"] = encoded_input["token_type_ids"]
 
             if prefix:
-                features["prompt_length"] = self.tokenizer([prefix], return_tensors="pt")["input_ids"].shape[-1] - 1
+                features["prompt_length"] = self.tokenize([prefix])["input_ids"].shape[-1] - 1
 
             # TODO: feature["token_weights_sum"]
 
@@ -250,5 +263,46 @@ class TransformersEmbedder(TextEmbedder):
             with open(Path(config), "r") as fin:
                 return json.load(fin)
         else:
-            logger.warning("No pooling config found, create a mean pooling!")
+            if is_main_process():
+                logger.warning("No pooling config found, create a mean pooling!")
             return {"word_embedding_dimension": getattr(self.model.config, "hidden_size"), "pooling_mode": "mean"}
+
+    def tokenize(
+        self, texts: list[str] | list[dict] | list[tuple[str, str]], padding: str | bool = True
+    ) -> dict[str, torch.Tensor]:
+        """Tokenizes a text and maps tokens to token-ids"""
+        output = {}
+        if isinstance(texts[0], str):
+            to_tokenize = [texts]
+        elif isinstance(texts[0], dict):
+            to_tokenize = []
+            output["text_keys"] = []
+            for lookup in texts:
+                text_key, text = next(iter(lookup.items()))
+                to_tokenize.append(text)
+                output["text_keys"].append(text_key)
+            to_tokenize = [to_tokenize]
+        else:
+            batch1, batch2 = [], []
+            for text_tuple in texts:
+                batch1.append(text_tuple[0])
+                batch2.append(text_tuple[1])
+            to_tokenize = [batch1, batch2]
+
+        # strip
+        to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
+
+        # Lowercase
+        if self.tokenizer.do_lower_case:
+            to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
+
+        output.update(
+            self.tokenizer(
+                *to_tokenize,
+                padding=padding,
+                truncation="longest_first",
+                return_tensors="pt",
+                max_length=self.max_seq_length,
+            )
+        )
+        return output

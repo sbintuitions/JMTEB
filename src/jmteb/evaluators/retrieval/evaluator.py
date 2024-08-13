@@ -79,7 +79,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         model: TextEmbedder,
         cache_dir: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
-    ) -> EvaluationResults:
+    ) -> EvaluationResults | None:
         model.set_output_tensor()
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
@@ -105,6 +105,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             prefix=self.doc_prefix,
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            dtype=getattr(model, "dtype", "float32"),
         )
 
         logger.info("Start retrieval")
@@ -169,15 +170,15 @@ class RetrievalEvaluator(EmbeddingEvaluator):
                 doc_embeddings_chunk = doc_embeddings[offset : offset + self.doc_chunk_size]
 
                 if torch.cuda.is_available():
-                    if dist.is_available():
+                    if dist.is_initialized():
                         device = f"cuda:{dist.get_rank()}"
                     else:
                         device = "cuda"
                 else:
                     device = "cpu"
 
-                query_embeddings = to_tensor(query_embeddings, device=device)
-                doc_embeddings_chunk = to_tensor(doc_embeddings_chunk, device=device)
+                query_embeddings = to_tensor(query_embeddings, device=device).float()
+                doc_embeddings_chunk = to_tensor(doc_embeddings_chunk, device=device).float()
                 similarity = dist_func(query_embeddings, doc_embeddings_chunk)
 
                 top_k = min(self.max_top_k, similarity.shape[1])  # in case the corpus is smaller than max_top_k

@@ -9,6 +9,7 @@ from sklearn.metrics import accuracy_score, f1_score
 
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.utils.dist import is_main_process
 
 from .classifiers import Classifier, KnnClassifier, LogRegClassifier
 from .data import ClassificationDataset, ClassificationPrediction
@@ -59,11 +60,12 @@ class ClassificationEvaluator(EmbeddingEvaluator):
 
     def __call__(
         self, model: TextEmbedder, cache_dir: str | PathLike[str] | None = None, overwrite_cache: bool = False
-    ) -> EvaluationResults:
+    ) -> EvaluationResults | None:
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        logger.info("Encoding training and validation sentences...")
+        if is_main_process():
+            logger.info("Encoding training and validation sentences...")
         X_train = model.batch_encode_with_cache(
             [item.text for item in self.train_dataset],
             prefix=self.prefix,
@@ -80,7 +82,8 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         )
         y_val = [item.label for item in self.val_dataset]
 
-        logger.info("Encoding test sentences...")
+        if is_main_process():
+            logger.info("Encoding test sentences...")
         if self.val_dataset == self.test_dataset:
             X_test = X_val
             y_test = y_val
@@ -92,6 +95,9 @@ class ClassificationEvaluator(EmbeddingEvaluator):
                 overwrite_cache=overwrite_cache,
             )
             y_test = [item.label for item in self.test_dataset]
+
+        if not is_main_process():
+            return
 
         test_results: dict[str, float] = {}
         val_results: dict[str, float] = {}
