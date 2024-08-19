@@ -155,7 +155,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
 
         with tqdm.tqdm(total=len(query_dataset), desc="Reranking docs") as pbar:
             if torch.cuda.is_available():
-                if dist.is_initialized():
+                if dist.is_torchelastic_launched():
                     device = f"cuda:{dist.get_rank()}"
                 else:
                     device = "cuda"
