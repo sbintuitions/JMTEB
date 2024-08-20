@@ -1,4 +1,4 @@
-from jmteb.evaluators.sts import STSDataset, STSEvaluator, STSInstance
+from jmteb.evaluators.sts import STSDataset, STSEvaluator, STSInstance, STSPrediction
 from jmteb.evaluators.sts.data import JsonlSTSDataset
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_similarity_metric"}
@@ -35,6 +35,12 @@ def test_sts(embedder):
         for dist in EXPECTED_SIM_FUNC_NAMES:
             if dist in results.details[score_splitname]:
                 assert set(results.details[score_splitname][dist].keys()) == EXPECTED_METRIC_NAMES
+
+
+def test_sts_with_predictions(embedder):
+    evaluator = STSEvaluator(val_dataset=DummySTSDataset(), test_dataset=DummySTSDataset(), log_predictions=True)
+    results = evaluator(model=embedder)
+    assert all([isinstance(result, STSPrediction) for result in results.predictions])
 
 
 def test_sts_with_prefix(embedder):

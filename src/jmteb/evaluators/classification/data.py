@@ -13,6 +13,13 @@ class ClassificationInstance:
     label: int
 
 
+@dataclass
+class ClassificationPrediction:
+    text: str
+    label: int
+    prediction: int
+
+
 class ClassificationDataset(ABC):
     @abstractmethod
     def __len__(self):

@@ -5,6 +5,7 @@ from os import PathLike
 from pathlib import Path
 
 import numpy as np
+import torch
 import tqdm
 from loguru import logger
 
@@ -14,7 +15,11 @@ class TextEmbedder(ABC):
     The base class of text embedder.
     """
 
-    def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
+    convert_to_tensor: bool
+    convert_to_numpy: bool
+    _chunk_size: int = 262144  # 2^18
+
+    def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray | torch.Tensor:
         """Convert a text string or a list of texts to embedding.
 
         Args:
@@ -36,9 +41,9 @@ class TextEmbedder(ABC):
         text_list: list[str],
         save_path: str | PathLike[str],
         prefix: str | None = None,
-        batch_size: int = 64,
+        batch_size: int = 262144,
         dtype: str = "float32",
-    ) -> np.memmap:
+    ) -> np.memmap | torch.Tensor:
         """
         Encode a list of texts and save the embeddings on disk using memmap.
 
@@ -52,18 +57,24 @@ class TextEmbedder(ABC):
 
         num_samples = len(text_list)
         output_dim = self.get_output_dim()
-        embeddings = np.memmap(save_path, dtype=dtype, mode="w+", shape=(num_samples, output_dim))
+        if self.convert_to_numpy:
+            embeddings = np.memmap(save_path, dtype=dtype, mode="w+", shape=(num_samples, output_dim))
+        else:
+            embeddings = torch.empty((num_samples, output_dim), dtype=self._torch_dtype_parser(dtype))
 
         with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
             for i in range(0, num_samples, batch_size):
                 batch = text_list[i : i + batch_size]
-                batch_embeddings = self.encode(batch, prefix=prefix)
-                batch_embeddings = np.asarray(batch_embeddings, dtype=dtype)
+                batch_embeddings: np.ndarray | torch.Tensor = self.encode(batch, prefix=prefix)
                 embeddings[i : i + batch_size] = batch_embeddings
                 pbar.update(len(batch))
-        embeddings.flush()
 
-        return np.memmap(save_path, dtype=dtype, mode="r", shape=(num_samples, output_dim))
+        if self.convert_to_numpy:
+            embeddings.flush()
+            return np.memmap(save_path, dtype=dtype, mode="r", shape=(num_samples, output_dim))
+        else:
+            torch.save(embeddings, save_path)
+            return embeddings
 
     def batch_encode_with_cache(
         self,
@@ -71,9 +82,8 @@ class TextEmbedder(ABC):
         prefix: str | None = None,
         cache_path: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
-        batch_size: int = 64,
         dtype: str = "float32",
-    ) -> np.ndarray:
+    ) -> np.ndarray | torch.Tensor:
         """
         Encode a list of texts and save the embeddings on disk using memmap if cache_path is provided.
 
@@ -82,13 +92,12 @@ class TextEmbedder(ABC):
             prefix (str, optional): the prefix to use for encoding. Default to None.
             cache_path (str, optional): path to save the embeddings. Defaults to None.
             overwrite_cache (bool, optional): whether to overwrite the cache. Defaults to False.
-            batch_size (int): batch size. Defaults to 64.
             dtype (str, optional): data type. Defaults to "float32".
         """
 
         if cache_path is None:
             logger.info("Encoding embeddings")
-            return self.encode(text_list, prefix=prefix).astype(dtype)
+            return self.encode(text_list, prefix=prefix)
 
         if Path(cache_path).exists() and not overwrite_cache:
             logger.info(f"Loading embeddings from {cache_path}")
@@ -96,6 +105,38 @@ class TextEmbedder(ABC):
 
         logger.info(f"Encoding and saving embeddings to {cache_path}")
         embeddings = self._batch_encode_and_save_on_disk(
-            text_list, cache_path, prefix=prefix, batch_size=batch_size, dtype=dtype
+            text_list, cache_path, prefix=prefix, batch_size=self._chunk_size, dtype=dtype
         )
         return embeddings
+
+    @staticmethod
+    def _torch_dtype_parser(dtype: str | torch.dtype) -> torch.dtype | str:
+        if dtype == "auto":
+            return dtype
+        elif isinstance(dtype, str):
+            dtype = dtype.replace("torch.", "")
+            if hasattr(torch, dtype):
+                dtype = getattr(torch, dtype)
+                if isinstance(dtype, torch.dtype):
+                    return dtype
+            raise ValueError(f"Invalid torch dtype: {dtype}")
+        elif isinstance(dtype, torch.dtype):
+            return dtype
+        else:
+            raise ValueError(f"Expected `dtype` as `str` or `torch.dtype`, but got {type(dtype)}!")
+
+    def _model_kwargs_parser(self, model_kwargs: dict | None) -> dict:
+        if not model_kwargs:
+            return {}
+
+        if "torch_dtype" in model_kwargs:
+            model_kwargs["torch_dtype"] = self._torch_dtype_parser(model_kwargs["torch_dtype"])
+        return model_kwargs
+
+    def set_output_tensor(self):
+        self.convert_to_numpy = False
+        self.convert_to_tensor = True
+
+    def set_output_numpy(self):
+        self.convert_to_numpy = True
+        self.convert_to_tensor = False

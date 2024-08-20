@@ -1,3 +1,5 @@
+from loguru import logger
+
 from jmteb.evaluators.reranking import (
     RerankingDoc,
     RerankingDocDataset,
@@ -8,17 +10,20 @@ from jmteb.evaluators.reranking import (
 from jmteb.evaluators.reranking.data import (
     JsonlRerankingDocDataset,
     JsonlRerankingQueryDataset,
+    RerankingPrediction,
 )
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}
 EXPECTED_DIST_FUNC_NAMES = {"cosine_similarity", "euclidean_distance", "dot_score"}
 QUERY_PREFIX = "クエリ: "
 DOC_PREFIX = "ドキュメント: "
+TOP_N_DOCS_TO_LOG = 4
 
 
 class DummyDocDataset(RerankingDocDataset):
     def __init__(self, prefix: str = ""):
         self._items = [RerankingDoc(id=str(i), text=f"{prefix}dummy document {i}") for i in range(30)]
+        self._build_idx_docid_mapping("_items")
 
     def __len__(self):
         return len(self._items)
@@ -58,6 +63,22 @@ def test_reranking_evaluator(embedder):
         for scores in results.details[score_splitname].values():
             for score in scores.keys():
                 assert any(score.startswith(metric) for metric in ["ndcg"])
+
+
+def test_reranking_evaluator_with_predictions(embedder):
+    evaluator = RerankingEvaluator(
+        val_query_dataset=DummyQueryDataset(),
+        test_query_dataset=DummyQueryDataset(),
+        doc_dataset=DummyDocDataset(),
+        log_predictions=True,
+        top_n_docs_to_log=TOP_N_DOCS_TO_LOG,
+    )
+    results = evaluator(model=embedder)
+    logger.info(f"{results.predictions=}")
+    for p in results.predictions:
+        assert isinstance(p, RerankingPrediction)
+        assert len(p.reranked_relevant_docs) <= TOP_N_DOCS_TO_LOG
+        assert all([isinstance(doc, RerankingDoc) for doc in p.reranked_relevant_docs])
 
 
 def test_reranking_evaluator_with_prefix(embedder):

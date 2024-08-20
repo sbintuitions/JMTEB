@@ -23,8 +23,10 @@ def test_main_cli():
         command = [
             "python", "-m", "jmteb",
             "--embedder", "tests.conftest.DummyTextEmbedder",
+            "--embedder.model_kwargs", '{"torch_dtype": "torch.float16"}',
             "--save_dir", f,
             "--eval_include", '["jsts"]',
+            "--log_predictions", "true",
         ]
         # fmt: on
         result = subprocess.run(command)

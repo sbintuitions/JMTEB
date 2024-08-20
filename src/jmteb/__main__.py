@@ -37,6 +37,10 @@ def main(
             dataset_name=eval_name,
             task_name=evaluator.__class__.__name__.replace("Evaluator", ""),
         )
+        if getattr(evaluator, "log_predictions", False):
+            score_recorder.record_predictions(
+                metrics, eval_name, evaluator.__class__.__name__.replace("Evaluator", "")
+            )
 
         logger.info(f"Results for {eval_name}\n{json.dumps(metrics.as_dict(), indent=4, ensure_ascii=False)}")
 
@@ -60,6 +64,9 @@ if __name__ == "__main__":
     parser.add_argument("--overwrite_cache", type=bool, default=False, help="Overwrite the save_dir if it exists")
     parser.add_argument("--eval_include", type=list[str], default=None, help="Evaluators to include.")
     parser.add_argument("--eval_exclude", type=list[str], default=None, help="Evaluators to exclude.")
+    parser.add_argument(
+        "--log_predictions", type=bool, default=False, help="Whether to log predictions for all evaulators."
+    )
 
     args = parser.parse_args()
 
@@ -98,6 +105,11 @@ if __name__ == "__main__":
             "but the path does not exist or the config format is broken.\n"
             f"Please check {args.evaluators}"
         )
+
+    if args.log_predictions:
+        for k, v in args.evaluators.items():
+            if hasattr(v, "log_predictions"):
+                args.evaluators[k].log_predictions = True
 
     main(
         text_embedder=args.embedder,

@@ -18,7 +18,7 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
-from .data import ClusteringDataset
+from .data import ClusteringDataset, ClusteringPrediction
 
 
 class ClusteringEvaluator(EmbeddingEvaluator):
@@ -32,11 +32,13 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         test_dataset: ClusteringDataset,
         prefix: str | None = None,
         random_seed: int | None = None,
+        log_predictions: bool = False,
     ) -> None:
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.prefix = prefix
         self.random_seed = random_seed
+        self.log_predictions = log_predictions
         self.main_metric = "v_measure_score"
 
     def __call__(
@@ -80,20 +82,21 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         logger.info("Fitting clustering model...")
         val_results = {}
         for model_name, model_constructor in model_constructors.items():
-            val_results[model_name] = self._evaluate_clustering_model(val_embeddings, val_labels, model_constructor())
+            val_results[model_name], _ = self._evaluate_clustering_model(
+                val_embeddings, val_labels, model_constructor()
+            )
         optimal_clustering_model_name = sorted(
             val_results.items(),
             key=lambda res: res[1][self.main_metric],
             reverse=True,
         )[0][0]
 
-        test_results = {
-            optimal_clustering_model_name: self._evaluate_clustering_model(
-                test_embeddings,
-                test_labels,
-                model_constructors[optimal_clustering_model_name](),
-            )
-        }
+        test_scores, test_predictions = self._evaluate_clustering_model(
+            test_embeddings,
+            test_labels,
+            model_constructors[optimal_clustering_model_name](),
+        )
+        test_results = {optimal_clustering_model_name: test_scores}
 
         return EvaluationResults(
             metric_name=self.main_metric,
@@ -103,12 +106,15 @@ class ClusteringEvaluator(EmbeddingEvaluator):
                 "val_scores": val_results,
                 "test_scores": test_results,
             },
+            predictions=(
+                self._format_predictions(self.test_dataset, test_predictions) if self.log_predictions else None
+            ),
         )
 
     @staticmethod
     def _evaluate_clustering_model(
         embeddings: np.ndarray, y_true: list[int], clustering_model: ClusterMixin
-    ) -> dict[str, float]:
+    ) -> tuple[dict[str, float], list[int]]:
         y_pred = clustering_model.fit_predict(embeddings)
         h_score, c_score, v_score = homogeneity_completeness_v_measure(
             labels_pred=y_pred, labels_true=np.array(y_true)
@@ -118,4 +124,10 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             "v_measure_score": v_score,
             "homogeneity_score": h_score,
             "completeness_score": c_score,
-        }
+        }, y_pred.tolist()
+
+    @staticmethod
+    def _format_predictions(dataset: ClusteringDataset, predictions: list[int]) -> list[ClusteringPrediction]:
+        return [
+            ClusteringPrediction(item.text, item.label, prediction) for item, prediction in zip(dataset, predictions)
+        ]

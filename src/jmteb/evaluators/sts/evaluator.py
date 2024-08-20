@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
@@ -13,7 +14,7 @@ from torch import Tensor
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
 
-from .data import STSDataset
+from .data import STSDataset, STSInstance, STSPrediction
 
 
 class STSEvaluator(EmbeddingEvaluator):
@@ -33,12 +34,14 @@ class STSEvaluator(EmbeddingEvaluator):
         test_dataset: STSDataset,
         sentence1_prefix: str | None = None,
         sentence2_prefix: str | None = None,
+        log_predictions: bool = False,
     ) -> None:
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.sentence1_prefix = sentence1_prefix
         self.sentence2_prefix = sentence2_prefix
         self.main_metric = "spearman"
+        self.log_predictions = log_predictions
 
     def __call__(
         self, model: TextEmbedder, cache_dir: str | PathLike[str] | None = None, overwrite_cache: bool = False
@@ -68,7 +71,7 @@ class STSEvaluator(EmbeddingEvaluator):
 
         val_results = {}
         for sim_name, sim_func in similarity_functions.items():
-            val_results[sim_name] = self._compute_similarity(
+            val_results[sim_name], _ = self._compute_similarity(
                 val_embeddings1, val_embeddings2, val_golden_scores, sim_func
             )
 
@@ -79,34 +82,59 @@ class STSEvaluator(EmbeddingEvaluator):
         )[
             0
         ][0]
-        test_results = {
-            optimal_similarity_name: self._compute_similarity(
-                test_embeddings1,
-                test_embeddings2,
-                test_golden_scores,
-                similarity_functions[optimal_similarity_name],
-            )
-        }
+        test_eval_scores, test_sim_scores = self._compute_similarity(
+            test_embeddings1,
+            test_embeddings2,
+            test_golden_scores,
+            similarity_functions[optimal_similarity_name],
+        )
 
         return EvaluationResults(
             metric_name=self.main_metric,
-            metric_value=test_results[optimal_similarity_name][self.main_metric],
+            metric_value=test_eval_scores[self.main_metric],
             details={
                 "optimal_similarity_metric": optimal_similarity_name,
                 "val_scores": val_results,
-                "test_scores": test_results,
+                "test_scores": {optimal_similarity_name: test_eval_scores},
             },
+            predictions=(
+                self._format_predictions(self.test_dataset, test_sim_scores, optimal_similarity_name)
+                if self.log_predictions
+                else None
+            ),
         )
 
     @staticmethod
     def _compute_similarity(
         embeddings1: Tensor, embeddings2: Tensor, golden_scores: list, similarity_func: Callable
-    ) -> dict[str, float]:
-        test_sim_score = similarity_func(embeddings1, embeddings2).cpu()
+    ) -> tuple[dict[str, float], list[float]]:
+        sim_scores = similarity_func(embeddings1, embeddings2).cpu()
+        if isinstance(sim_scores, Tensor) and sim_scores.dtype is torch.bfloat16:
+            sim_scores = sim_scores.float()
+        pearson = pearsonr(golden_scores, sim_scores)[0]
+        spearman = spearmanr(golden_scores, sim_scores)[0]
         return {
-            "pearson": pearsonr(golden_scores, test_sim_score)[0],
-            "spearman": spearmanr(golden_scores, test_sim_score)[0],
-        }
+            "pearson": pearson if not math.isnan(pearson) else 0.0,
+            "spearman": spearman if not math.isnan(spearman) else 0.0,
+        }, sim_scores.tolist()
+
+    @staticmethod
+    def _format_predictions(
+        dataset: STSDataset, sim_scores: list[float], similarity_function_name: str
+    ) -> list[STSPrediction]:
+        predictions = []
+        for item, sim_score in zip(dataset, sim_scores):
+            item: STSInstance
+            predictions.append(
+                STSPrediction(
+                    sentence1=item.sentence1,
+                    sentence2=item.sentence2,
+                    true_score=item.score,
+                    predicted_score=sim_score,
+                    similarity_function_name=similarity_function_name,
+                )
+            )
+        return predictions
 
     def _convert_to_embeddings(
         self,

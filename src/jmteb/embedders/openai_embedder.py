@@ -60,6 +60,9 @@ class OpenAIEmbedder(TextEmbedder):
             else:
                 self.dim = dim
 
+        self.convert_to_tensor = False
+        self.convert_to_numpy = True
+
     def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
         kwargs = {"dimensions": self.dim} if self.model != "text-embedding-ada-002" else {}
         # specifying `dimensions` is not allowed for "text-embedding-ada-002"

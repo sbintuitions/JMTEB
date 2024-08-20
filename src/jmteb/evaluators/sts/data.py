@@ -14,6 +14,15 @@ class STSInstance:
     score: float
 
 
+@dataclass
+class STSPrediction:
+    sentence1: str
+    sentence2: str
+    true_score: float
+    predicted_score: float
+    similarity_function_name: str
+
+
 class STSDataset(ABC):
     @abstractmethod
     def __len__(self):

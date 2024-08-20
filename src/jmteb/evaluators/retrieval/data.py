@@ -21,6 +21,13 @@ class RetrievalDoc:
     text: str
 
 
+@dataclass
+class RetrievalPrediction:
+    query: str
+    relevant_docs: list[RetrievalDoc]
+    predicted_relevant_docs: list[RetrievalDoc]
+
+
 class RetrievalQueryDataset(ABC):
     @abstractmethod
     def __len__(self):
@@ -45,6 +52,23 @@ class RetrievalDocDataset(ABC):
 
     def __eq__(self, __value: object) -> bool:
         return False
+
+    def _build_idx_docid_mapping(self, dataset_attr_name: str = "dataset") -> None:
+        self.idx_to_docid: dict = {}
+        self.docid_to_idx: dict = {}
+        id_key: str = getattr(self, "id_key", None)
+        dataset = getattr(self, dataset_attr_name)
+        if id_key:
+            for idx, doc_dict in enumerate(dataset):
+                self.idx_to_docid[idx] = doc_dict[id_key]
+                self.docid_to_idx[doc_dict[id_key]] = idx
+        elif isinstance(dataset[0], RetrievalDoc):
+            for idx, doc in enumerate(dataset):
+                doc: RetrievalDoc
+                self.idx_to_docid[idx] = doc.id
+                self.docid_to_idx[doc.id] = idx
+        else:
+            raise ValueError(f"Invalid dataset type: list[{type(dataset[0])}]")
 
 
 class HfRetrievalQueryDataset(RetrievalQueryDataset):
@@ -124,6 +148,7 @@ class HfRetrievalDocDataset(RetrievalDocDataset):
         self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.id_key = id_key
         self.text_key = text_key
+        self._build_idx_docid_mapping()
 
     def __len__(self):
         return len(self.dataset)
@@ -150,6 +175,7 @@ class JsonlRetrievalDocDataset(RetrievalDocDataset):
         self.dataset = corpus
         self.id_key = id_key
         self.text_key = text_key
+        self._build_idx_docid_mapping()
 
     def __len__(self):
         return len(self.dataset)
