@@ -44,3 +44,36 @@ poetry run python -m jmteb \
 
 > [!NOTE]
 > If you want to log model predictions to further analyze the performance of your model, you may want to use `--log_predictions true` to enable all evaluators to log predictions. It is also available to set whether to log in the config of evaluators.
+
+## Multi-GPU support
+
+There are two ways to enable multi-GPU evaluation.
+
+* New class `DPSentenceBertEmbedder` ([here](src/jmteb/embedders/data_parallel_sbert_embedder.py)).
+
+```bash
+poetry run python -m jmteb \
+  --evaluators "src/configs/tasks/jsts.jsonnet" \
+  --embedder DPSentenceBertEmbedder \
+  --embedder.model_name_or_path "<model_name_or_path>" \
+  --save_dir "output/<model_name_or_path>"
+```
+
+* With `torchrun`, multi-GPU in [`TransformersEmbedder`](src/jmteb/embedders/transformers_embedder.py) is available. For example,
+
+```bash
+MODEL_NAME=<model_name_or_path>
+MODEL_KWARGS="\{\'torch_dtype\':\'torch.bfloat16\'\}"
+torchrun \
+    --nproc_per_node=$GPUS_PER_NODE --nnodes=1 \
+    src/jmteb/__main__.py --embedder TransformersEmbedder \
+    --embedder.model_name_or_path ${MODEL_NAME} \
+    --embedder.pooling_mode cls \
+    --embedder.batch_size 4096 \
+    --embedder.model_kwargs ${MODEL_KWARGS} \
+    --embedder.max_seq_length 512 \
+    --save_dir "output/${MODEL_NAME}" \
+    --evaluators src/jmteb/configs/jmteb.jsonnet
+```
+
+Note that the batch size here is global batch size (`per_device_batch_size` × `n_gpu`).
