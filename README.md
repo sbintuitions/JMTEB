@@ -75,3 +75,4 @@ torchrun \
     --save_dir "output/${MODEL_NAME}" \
     --evaluators src/jmteb/configs/jmteb.jsonnet
 ```
+Note that the batch size here is global batch size (`per_device_batch_size` × `n_gpu`).
