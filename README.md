@@ -4,7 +4,7 @@
 
 This is an easy-to-use evaluation script designed for JMTEB evaluation.
 
-JMTEB leaderboard is [here](leaderboard.md). A guidance for submission is coming soon.
+JMTEB leaderboard is [here](leaderboard.md). If you would like to submit your model, please refer to the [submission guideline](submission.md)
 
 ## Quick start
 
