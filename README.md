@@ -60,6 +60,7 @@ poetry run python -m jmteb \
 ```
 
 * With `torchrun`, multi-GPU in [`TransformersEmbedder`](src/jmteb/embedders/transformers_embedder.py) is available. For example,
+
 ```bash
 MODEL_NAME=<model_name_or_path>
 MODEL_KWARGS="\{\'torch_dtype\':\'torch.bfloat16\'\}"
