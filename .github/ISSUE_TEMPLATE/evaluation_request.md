@@ -9,7 +9,7 @@ assignees: ''
 
 ## モデルの基本情報
 **name**: 
-**type**:
+**type**: <!-- バックボーンモデル，例えば BERT, LLaMA... -->
 **size**:
 **lang**: ja / multilingual
 
@@ -20,7 +20,7 @@ assignees: ''
 
 
 ## seen/unseen申告
-JMTEBの評価データセットの中，training splitをモデル学習に使用したデータセット名をチェックしてください。
+JMTEBの評価データセットの中，training splitをモデル学習に使用した，またはvalidation setとして，ハイパラチューニングやearly stoppingに使用したデータセット名をチェックしてください。
 * Classification
   * [ ] Amazon Review Classification
   * [ ] Amazon Counterfactual Classification
