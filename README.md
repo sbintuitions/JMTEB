@@ -57,12 +57,12 @@ poetry run python -m jmteb \
 
 There are two ways to enable multi-GPU evaluation.
 
-* New class `DPSentenceBertEmbedder` ([here](src/jmteb/embedders/data_parallel_sbert_embedder.py)).
+* New class `DataParallelSentenceBertEmbedder` ([here](src/jmteb/embedders/data_parallel_sbert_embedder.py)).
 
 ```bash
 poetry run python -m jmteb \
   --evaluators "src/configs/tasks/jsts.jsonnet" \
-  --embedder DPSentenceBertEmbedder \
+  --embedder DataParallelSentenceBertEmbedder \
   --embedder.model_name_or_path "<model_name_or_path>" \
   --save_dir "output/<model_name_or_path>"
 ```
