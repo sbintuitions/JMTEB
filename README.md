@@ -1,10 +1,18 @@
 # JMTEB: Japanese Massive Text Embedding Benchmark
 
+<h4 align="center">
+    <p>
+        <b>README</b> |
+        <a href="./leaderboard.md">leaderboard</a> |
+        <a href="./submission.md">submission guideline</a>
+    </p>
+</h4>
+
 [JMTEB](https://huggingface.co/datasets/sbintuitions/JMTEB) is a benchmark for evaluating Japanese text embedding models. It consists of 5 tasks.
 
 This is an easy-to-use evaluation script designed for JMTEB evaluation.
 
-JMTEB leaderboard is [here](leaderboard.md). A guidance for submission is coming soon.
+JMTEB leaderboard is [here](leaderboard.md). If you would like to submit your model, please refer to the [submission guideline](submission.md).
 
 ## Quick start
 

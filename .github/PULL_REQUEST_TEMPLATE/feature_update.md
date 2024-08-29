@@ -1,3 +1,11 @@
+---
+name: Feature update PR
+about: 新機能を追加するPR
+title: "[Feature] "
+labels: enhancement
+assignees: ''
+---
+
 <!-- 
 PRを出していただき、ありがとうございます。
 base branchを`dev`にするよう、お願いいたします。
