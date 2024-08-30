@@ -1,10 +1,18 @@
 # JMTEB: Japanese Massive Text Embedding Benchmark
 
+<h4 align="center">
+    <p>
+        <b>README</b> |
+        <a href="./leaderboard.md">leaderboard</a> |
+        <a href="./submission.md">submission guideline</a>
+    </p>
+</h4>
+
 [JMTEB](https://huggingface.co/datasets/sbintuitions/JMTEB) is a benchmark for evaluating Japanese text embedding models. It consists of 5 tasks.
 
 This is an easy-to-use evaluation script designed for JMTEB evaluation.
 
-JMTEB leaderboard is [here](leaderboard.md). A guidance for submission is coming soon.
+JMTEB leaderboard is [here](leaderboard.md). If you would like to submit your model, please refer to the [submission guideline](submission.md).
 
 ## Quick start
 
@@ -49,12 +57,12 @@ poetry run python -m jmteb \
 
 There are two ways to enable multi-GPU evaluation.
 
-* New class `DPSentenceBertEmbedder` ([here](src/jmteb/embedders/data_parallel_sbert_embedder.py)).
+* New class `DataParallelSentenceBertEmbedder` ([here](src/jmteb/embedders/data_parallel_sbert_embedder.py)).
 
 ```bash
 poetry run python -m jmteb \
   --evaluators "src/configs/tasks/jsts.jsonnet" \
-  --embedder DPSentenceBertEmbedder \
+  --embedder DataParallelSentenceBertEmbedder \
   --embedder.model_name_or_path "<model_name_or_path>" \
   --save_dir "output/<model_name_or_path>"
 ```
