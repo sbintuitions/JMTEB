@@ -7,19 +7,19 @@ The summary shows the average scores within each task.
 
 | Model                                         | Avg.      | Retrieval   | STS       | Classification   | Reranking   | Clustering   | PairClassification   |
 |:----------------------------------------------|:----------|:------------|:----------|:-----------------|:------------|:-------------|:---------------------|
-| intfloat/multilingual-e5-large                | **71.65** | 70.98       | 79.70     | 72.89            | 92.96       | 51.24        | 62.15                |
+| OpenAI/text-embedding-3-large                 | **73.97** | **74.48**   | 82.52     | **77.58**        | **93.58**   | **53.32**    | 62.35                |
+| intfloat/multilingual-e5-large                | 71.65     | 70.98       | 79.70     | 72.89            | 92.96       | 51.24        | 62.15                |
+| OpenAI/text-embedding-3-small                 | 70.86     | 66.39       | 79.46     | 73.06            | 92.92       | 51.06        | 62.27                |
 | pkshatech/GLuCoSE-base-ja                     | 70.44     | 59.02       | 78.71     | 76.82            | 91.90       | 49.78        | **66.39**            |
 | intfloat/multilingual-e5-base                 | 70.12     | 68.21       | 79.84     | 69.30            | 92.85       | 48.26        | 62.26                |
-| OpenAI/text-embedding-3-large                 | 69.63     | **74.48**   | 82.52     | **77.58**        | **93.58**   | 27.29        | 62.35                |
 | intfloat/multilingual-e5-small                | 69.52     | 67.27       | 80.07     | 67.62            | 93.03       | 46.91        | 62.19                |
-| cl-nagoya/sup-simcse-ja-base                  | 68.56     | 49.64       | 82.05     | 73.47            | 91.83       | **51.79**    | 62.57                |
+| OpenAI/text-embedding-ada-002                 | 69.48     | 64.38       | 79.02     | 69.75            | 93.04       | 48.30        | 62.40                |
+| cl-nagoya/sup-simcse-ja-base                  | 68.56     | 49.64       | 82.05     | 73.47            | 91.83       | 51.79        | 62.57                |
 | MU-Kindai/Japanese-SimCSE-BERT-large-unsup    | 66.89     | 47.38       | 78.99     | 73.13            | 91.30       | 48.25        | 62.27                |
 | oshizo/sbert-jsnli-luke-japanese-base-lite    | 66.75     | 43.00       | 76.60     | 76.61            | 91.56       | 50.33        | 62.38                |
-| OpenAI/text-embedding-3-small                 | 66.74     | 66.39       | 79.46     | 73.06            | 92.92       | 26.34        | 62.27                |
 | cl-nagoya/sup-simcse-ja-large                 | 66.51     | 37.62       | **83.18** | 73.73            | 91.48       | 50.56        | 62.51                |
 | cl-nagoya/unsup-simcse-ja-large               | 66.27     | 40.53       | 80.56     | 74.66            | 90.95       | 48.41        | 62.49                |
 | MU-Kindai/Japanese-SimCSE-BERT-base-unsup     | 66.23     | 46.36       | 77.49     | 73.30            | 91.16       | 46.68        | 62.38                |
-| OpenAI/text-embedding-ada-002                 | 65.84     | 64.38       | 79.02     | 69.75            | 93.04       | 26.47        | 62.40                |
 | MU-Kindai/Japanese-SimCSE-BERT-large-sup      | 65.28     | 40.82       | 78.28     | 73.47            | 90.95       | 45.81        | 62.35                |
 | MU-Kindai/Japanese-MixCSE-BERT-base           | 65.14     | 42.59       | 77.05     | 72.90            | 91.01       | 44.95        | 62.33                |
 | cl-nagoya/unsup-simcse-ja-base                | 65.07     | 40.23       | 78.72     | 73.07            | 91.16       | 44.77        | 62.44                |
@@ -137,12 +137,15 @@ The summary shows the average scores within each task.
 ## Clustering
 | Model                                         | Avg.      | livedoor_news<br>(v_measure_score)   | mewsc16<br>(v_measure_score)   |
 |:----------------------------------------------|:----------|:-------------------------------------|:-------------------------------|
-| cl-nagoya/sup-simcse-ja-base                  | **51.79** | 52.67                                | 50.91                          |
+| OpenAI/text-embedding-3-large                 | **53.32** | 57.09                                | 49.55                          |
+| cl-nagoya/sup-simcse-ja-base                  | 51.79     | 52.67                                | 50.91                          |
 | intfloat/multilingual-e5-large                | 51.24     | **57.13**                            | 45.34                          |
+| OpenAI/text-embedding-3-small                 | 51.06     | 54.57                                | 47.55                          |
 | cl-nagoya/sup-simcse-ja-large                 | 50.56     | 50.75                                | 50.38                          |
 | oshizo/sbert-jsnli-luke-japanese-base-lite    | 50.33     | 46.77                                | **53.89**                      |
 | pkshatech/GLuCoSE-base-ja                     | 49.78     | 49.89                                | 49.68                          |
 | cl-nagoya/unsup-simcse-ja-large               | 48.41     | 50.90                                | 45.92                          |
+| OpenAI/text-embedding-ada-002                 | 48.30     | 49.67                                | 46.92                          |
 | intfloat/multilingual-e5-base                 | 48.26     | 55.03                                | 41.49                          |
 | MU-Kindai/Japanese-SimCSE-BERT-large-unsup    | 48.25     | 53.20                                | 43.31                          |
 | pkshatech/simcse-ja-bert-base-clcmlp          | 47.53     | 44.77                                | 50.30                          |
@@ -156,9 +159,6 @@ The summary shows the average scores within each task.
 | MU-Kindai/Japanese-DiffCSE-BERT-base          | 44.22     | 49.67                                | 38.77                          |
 | MU-Kindai/Japanese-SimCSE-BERT-base-sup       | 43.11     | 41.04                                | 45.18                          |
 | sentence-transformers/stsb-xlm-r-multilingual | 27.46     | 24.49                                | 30.43                          |
-| OpenAI/text-embedding-3-large                 | 27.29     | 5.02                                 | 49.55                          |
-| OpenAI/text-embedding-ada-002                 | 26.47     | 6.03                                 | 46.92                          |
-| OpenAI/text-embedding-3-small                 | 26.34     | 5.13                                 | 47.55                          |
 
 ## PairClassification
 | Model                                         | Avg.      | paws_x_ja<br>(binary_f1)   |
