@@ -30,6 +30,7 @@ class TransformersEmbedder(TextEmbedder):
         pooling_mode: str | None = None,
         model_kwargs: dict = {},
         tokenizer_kwargs: dict = {},
+        word_embedding_dimension: int | None = None,
         encode_method_name: str | None = None,
         encode_method_text_argument: str = "text",
         encode_method_prefix_argument: str = "prefix",
@@ -76,6 +77,10 @@ class TransformersEmbedder(TextEmbedder):
 
         self.add_eos = add_eos
         self.truncate_dim = truncate_dim
+        if word_embedding_dimension:
+            self.word_embedding_dimension = word_embedding_dimension
+        else:
+            self.word_embedding_dimension = getattr(self.model.config, "hidden_size")
 
         if pooling_mode:
             pooling_config: dict = {
@@ -86,7 +91,7 @@ class TransformersEmbedder(TextEmbedder):
             pooling_config: dict = self._load_pooling_config(os.path.join(model_name_or_path, pooling_config))
 
         self.pooling = Pooling(
-            word_embedding_dimension=pooling_config.get("word_embedding_dimension"),
+            word_embedding_dimension=self.word_embedding_dimension,
             pooling_mode=pooling_config.get("pooling_mode", None),
             pooling_mode_cls_token=pooling_config.get("pooling_mode_cls_token", False),
             pooling_mode_max_tokens=pooling_config.get("pooling_mode_max_tokens", False),
@@ -184,6 +189,7 @@ class TransformersEmbedder(TextEmbedder):
 
         if self.encode_method_name and hasattr(self.model, self.encode_method_name):
             # ensure the built-in encoding method accepts positional arguments for text and prefix
+            logger.info("Used built-in encoding method")
             sentence_embeddings = getattr(self.model, self.encode_method_name)(
                 **{self.encode_method_text_argument: text, self.encode_method_prefix_argument: prefix}
             )
@@ -275,7 +281,7 @@ class TransformersEmbedder(TextEmbedder):
         to_tokenize = [[str(s).strip() for s in col] for col in to_tokenize]
 
         # Lowercase
-        if self.tokenizer.do_lower_case:
+        if getattr(self.tokenizer, "do_lower_case", False):
             to_tokenize = [[s.lower() for s in col] for col in to_tokenize]
 
         output.update(
