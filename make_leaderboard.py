@@ -62,7 +62,14 @@ for task_name, task_results in all_results.items():
     table_list: list[list[str | float]] = []
     for model_signature, dataset_scores in task_results.items():
         model_scores = [dataset_scores[k] for k in dataset_keys]
-        average_score = sum(model_scores) / len(model_scores)
+        if task_name == SUMMARY_KEY:
+            scores_by_dataset = []
+            for _task_name, _task_results in all_results.items():
+                if _task_name != SUMMARY_KEY:
+                    scores_by_dataset.extend(list(_task_results[model_signature].values()))
+            average_score = sum(scores_by_dataset) / len(scores_by_dataset)
+        else:
+            average_score = sum(model_scores) / len(model_scores)
         table_list.append([model_signature, average_score, *model_scores])
 
     # sort by the average score
@@ -97,7 +104,10 @@ with open("leaderboard.md", "w") as f:
         f.write(f"## {task_name}\n")
 
         if task_name == SUMMARY_KEY:
-            f.write("\nThe summary shows the average scores within each task.\n\n")
+            f.write(
+                "\nThe summary shows the average scores within each task. "
+                "The average score is the average of scores by dataset.\n\n"
+            )
 
         f.write(markdown_table)
         f.write("\n\n")
