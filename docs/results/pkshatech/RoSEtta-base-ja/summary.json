@@ -1,62 +1,62 @@
 {
     "Classification": {
         "amazon_counterfactual_classification": {
-            "macro_f1": 0.7006688790331752
+            "macro_f1": 0.7005147244958231
         },
         "amazon_review_classification": {
-            "macro_f1": 0.5299983831023539
+            "macro_f1": 0.5263680453119501
         },
         "massive_intent_classification": {
-            "macro_f1": 0.7952268533717546
+            "macro_f1": 0.7983787583297884
         },
         "massive_scenario_classification": {
-            "macro_f1": 0.869707847800633
+            "macro_f1": 0.8709593192703351
         }
     },
     "Reranking": {
         "esci": {
-            "ndcg@10": 0.9267539503767978
+            "ndcg@10": 0.9268625513429571
         }
     },
     "Retrieval": {
         "jagovfaqs_22k": {
-            "ndcg@10": 0.6379929234552755
+            "ndcg@10": 0.6595934642903105
         },
         "jaqket": {
-            "ndcg@10": 0.6533570255483011
+            "ndcg@10": 0.6533452086105761
         },
         "mrtydi": {
-            "ndcg@10": 0.3407337609040446
+            "ndcg@10": 0.36731170141136216
         },
         "nlp_journal_abs_intro": {
-            "ndcg@10": 0.9577227924391506
+            "ndcg@10": 0.9553567926226499
         },
         "nlp_journal_title_abs": {
-            "ndcg@10": 0.9282272189004226
+            "ndcg@10": 0.940828991756893
         },
         "nlp_journal_title_intro": {
-            "ndcg@10": 0.7938878816204916
+            "ndcg@10": 0.8163161967769845
         }
     },
     "STS": {
         "jsick": {
-            "spearman": 0.8302539464008364
+            "spearman": 0.8383455453168481
         },
         "jsts": {
-            "spearman": 0.7961383132420531
+            "spearman": 0.7895388048564987
         }
     },
     "Clustering": {
         "livedoor_news": {
-            "v_measure_score": 0.5503116157834466
+            "v_measure_score": 0.5861760622672214
         },
         "mewsc16": {
-            "v_measure_score": 0.389105324755125
+            "v_measure_score": 0.4784844036038961
         }
     },
     "PairClassification": {
         "paws_x_ja": {
-            "binary_f1": 0.6218727662616155
+            "binary_f1": 0.6173974540311173
         }
     }
 }
