@@ -6,6 +6,8 @@ import datasets
 from loguru import logger
 from pydantic.dataclasses import dataclass
 
+from jmteb.utils.dist import build_dataset_distributed, is_main_process
+
 
 @dataclass
 class PairClassificationInstance:
@@ -37,14 +39,17 @@ class HfPairClassificationDataset(PairClassificationDataset):
         sentence2_key: str = "sentence2",
         label_key: str = "label",
     ):
-        logger.info(f"Loading dataset {path} (name={name}) with split {split}")
+        if is_main_process():
+            logger.info(f"Loading dataset {path} (name={name}) with split {split}")
         self.path = path
         self.split = split
         self.name = name
-        self.dataset = datasets.load_dataset(path, split=split, name=name, trust_remote_code=True)
         self.sentence1_key = sentence1_key
         self.sentence2_key = sentence2_key
         self.label_key = label_key
+        self.dataset: datasets.Dataset = build_dataset_distributed(
+            datasets.load_dataset, path=path, split=split, name=name, trust_remote_code=True
+        )
         if not self.dataset.features[self.label_key].dtype.startswith("int"):
             label_to_int = {label: i for i, label in enumerate(sorted(set(self.dataset[self.label_key])))}
             self.dataset = self.dataset.map(lambda example: {"label": label_to_int[example[label_key]]})
@@ -78,9 +83,12 @@ class JsonlPairClassificationDataset(PairClassificationDataset):
         sentence2_key: str = "sentence2",
         label_key: str = "label",
     ) -> None:
-        logger.info(f"Loading dataset from {filename}")
+        if is_main_process():
+            logger.info(f"Loading dataset from {filename}")
         self.filename = filename
-        self.dataset: datasets.Dataset = datasets.load_dataset("json", data_files=filename)["train"]
+        self.dataset: datasets.Dataset = build_dataset_distributed(
+            datasets.load_dataset, path="json", data_files=filename
+        )["train"]
         self.sentence1_key = sentence1_key
         self.sentence2_key = sentence2_key
         self.label_key = label_key

@@ -17,6 +17,7 @@ from sklearn.metrics import homogeneity_completeness_v_measure
 
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.utils.dist import is_main_process
 
 from .data import ClusteringDataset, ClusteringPrediction
 
@@ -43,11 +44,12 @@ class ClusteringEvaluator(EmbeddingEvaluator):
 
     def __call__(
         self, model: TextEmbedder, cache_dir: str | PathLike[str] | None = None, overwrite_cache: bool = False
-    ) -> EvaluationResults:
+    ) -> EvaluationResults | None:
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-        logger.info("Converting validation data to embeddings...")
+        if is_main_process():
+            logger.info("Converting validation data to embeddings...")
         val_embeddings = model.batch_encode_with_cache(
             [item.text for item in self.val_dataset],
             prefix=self.prefix,
@@ -56,7 +58,8 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         )
         val_labels = [item.label for item in self.val_dataset]
 
-        logger.info("Converting test data to embeddings...")
+        if is_main_process():
+            logger.info("Converting test data to embeddings...")
         if self.val_dataset == self.test_dataset:
             test_embeddings = val_embeddings
             test_labels = val_labels
@@ -79,7 +82,11 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             "Birch": lambda: Birch(n_clusters=n_clusters),
         }
 
-        logger.info("Fitting clustering model...")
+        if is_main_process():
+            logger.info("Fitting clustering model...")
+        else:
+            return
+
         val_results = {}
         for model_name, model_constructor in model_constructors.items():
             val_results[model_name], _ = self._evaluate_clustering_model(

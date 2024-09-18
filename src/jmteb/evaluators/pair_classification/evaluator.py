@@ -7,6 +7,7 @@ import numpy as np
 
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.utils.dist import is_main_process
 
 from .data import PairClassificationDataset
 from .threshold_accuracy import ThresholdAccuracyMetric
@@ -42,7 +43,7 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
 
     def __call__(
         self, model: TextEmbedder, cache_dir: str | PathLike[str] | None = None, overwrite_cache: bool = False
-    ) -> EvaluationResults:
+    ) -> EvaluationResults | None:
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
@@ -59,6 +60,9 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
             test_embeddings1, test_embeddings2, test_golden_labels = self._convert_to_embeddings(
                 model, self.test_dataset, "test", overwrite_cache, cache_dir
             )
+
+        if not is_main_process():
+            return
 
         val_results = {}
         test_results = {}

@@ -13,6 +13,7 @@ from torch import Tensor
 
 from jmteb.embedders.base import TextEmbedder
 from jmteb.evaluators.base import EmbeddingEvaluator, EvaluationResults
+from jmteb.utils.dist import is_main_process
 
 from .data import STSDataset, STSInstance, STSPrediction
 
@@ -45,7 +46,7 @@ class STSEvaluator(EmbeddingEvaluator):
 
     def __call__(
         self, model: TextEmbedder, cache_dir: str | PathLike[str] | None = None, overwrite_cache: bool = False
-    ) -> EvaluationResults:
+    ) -> EvaluationResults | None:
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
@@ -61,6 +62,9 @@ class STSEvaluator(EmbeddingEvaluator):
         test_embeddings1, test_embeddings2, test_golden_scores = self._convert_to_embeddings(
             model, self.test_dataset, "test", overwrite_cache, cache_dir
         )
+
+        if not is_main_process():
+            return
 
         similarity_functions = {
             "cosine_similarity": PairwiseSimilarities.cosine_similarity,
