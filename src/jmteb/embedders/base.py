@@ -19,7 +19,7 @@ class TextEmbedder(ABC):
     convert_to_numpy: bool
     _chunk_size: int = 262144  # 2^18
 
-    def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray | torch.Tensor:
+    def encode(self, text: str | list[str], prefix: str | None = None, **kwargs) -> np.ndarray | torch.Tensor:
         """Convert a text string or a list of texts to embedding.
 
         Args:
@@ -43,6 +43,7 @@ class TextEmbedder(ABC):
         prefix: str | None = None,
         batch_size: int = 262144,
         dtype: str = "float32",
+        **kwargs,
     ) -> np.memmap | torch.Tensor:
         """
         Encode a list of texts and save the embeddings on disk using memmap.
@@ -65,7 +66,7 @@ class TextEmbedder(ABC):
         with tqdm.tqdm(total=num_samples, desc="Encoding") as pbar:
             for i in range(0, num_samples, batch_size):
                 batch = text_list[i : i + batch_size]
-                batch_embeddings: np.ndarray | torch.Tensor = self.encode(batch, prefix=prefix)
+                batch_embeddings: np.ndarray | torch.Tensor = self.encode(batch, prefix=prefix, **kwargs)
                 embeddings[i : i + batch_size] = batch_embeddings
                 pbar.update(len(batch))
 
@@ -83,6 +84,7 @@ class TextEmbedder(ABC):
         cache_path: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
         dtype: str = "float32",
+        **kwargs,
     ) -> np.ndarray | torch.Tensor:
         """
         Encode a list of texts and save the embeddings on disk using memmap if cache_path is provided.
@@ -95,9 +97,10 @@ class TextEmbedder(ABC):
             dtype (str, optional): data type. Defaults to "float32".
         """
 
+        logger.warning(f"{kwargs=}")
         if cache_path is None:
             logger.info("Encoding embeddings")
-            return self.encode(text_list, prefix=prefix)
+            return self.encode(text_list, prefix=prefix, **kwargs)
 
         if Path(cache_path).exists() and not overwrite_cache:
             logger.info(f"Loading embeddings from {cache_path}")
@@ -105,7 +108,7 @@ class TextEmbedder(ABC):
 
         logger.info(f"Encoding and saving embeddings to {cache_path}")
         embeddings = self._batch_encode_and_save_on_disk(
-            text_list, cache_path, prefix=prefix, batch_size=self._chunk_size, dtype=dtype
+            text_list, cache_path, prefix=prefix, batch_size=self._chunk_size, dtype=dtype, **kwargs
         )
         return embeddings
 
