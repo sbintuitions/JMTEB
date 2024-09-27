@@ -33,12 +33,14 @@ class ClusteringEvaluator(EmbeddingEvaluator):
         prefix: str | None = None,
         random_seed: int | None = None,
         log_predictions: bool = False,
+        encode_kwargs: dict = {},
     ) -> None:
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self.prefix = prefix
         self.random_seed = random_seed
         self.log_predictions = log_predictions
+        self.encode_kwargs = encode_kwargs
         self.main_metric = "v_measure_score"
 
     def __call__(
@@ -53,6 +55,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
             prefix=self.prefix,
             cache_path=Path(cache_dir) / "val_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.encode_kwargs,
         )
         val_labels = [item.label for item in self.val_dataset]
 
@@ -66,6 +69,7 @@ class ClusteringEvaluator(EmbeddingEvaluator):
                 prefix=self.prefix,
                 cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
+                **self.encode_kwargs,
             )
             test_labels = [item.label for item in self.test_dataset]
 

@@ -51,6 +51,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
         doc_prefix: str | None = None,
         log_predictions: bool = False,
         top_n_docs_to_log: int = 5,
+        query_encode_kwargs: dict = {},
+        doc_encode_kwargs: dict = {},
     ) -> None:
         self.test_query_dataset = test_query_dataset
         self.val_query_dataset = val_query_dataset
@@ -61,6 +63,8 @@ class RerankingEvaluator(EmbeddingEvaluator):
         self.doc_prefix = doc_prefix
         self.log_predictions = log_predictions
         self.top_n_docs_to_log = top_n_docs_to_log
+        self.query_encode_kwargs = query_encode_kwargs
+        self.doc_encode_kwargs = doc_encode_kwargs
 
     def __call__(
         self,
@@ -77,6 +81,7 @@ class RerankingEvaluator(EmbeddingEvaluator):
             prefix=self.query_prefix,
             cache_path=Path(cache_dir) / "val_query.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.query_encode_kwargs,
         )
         if self.val_query_dataset == self.test_query_dataset:
             test_query_embeddings = val_query_embeddings
@@ -86,12 +91,14 @@ class RerankingEvaluator(EmbeddingEvaluator):
                 prefix=self.query_prefix,
                 cache_path=Path(cache_dir) / "test_query.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
+                **self.query_encode_kwargs,
             )
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in self.doc_dataset],
             prefix=self.doc_prefix,
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.doc_encode_kwargs,
         )
 
         logger.info("Start reranking")
