@@ -2,7 +2,7 @@
   mewsc16: {
     class_path: 'ClusteringEvaluator',
     init_args: {
-      local task = '与えられたニュース記事の話題やテーマを特定してください。',
+      local task = '与えられた文章の話題やテーマを特定してください。',
       prefix: 'Instruct: %s\nQuery: ' % task,
       val_dataset: {
         class_path: 'HfClusteringDataset',

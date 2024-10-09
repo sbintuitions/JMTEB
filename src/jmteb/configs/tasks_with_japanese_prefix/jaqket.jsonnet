@@ -2,7 +2,7 @@
   jaqket: {
     class_path: 'RetrievalEvaluator',
     init_args: {
-      local task = '与えられたクイズに対する回答として、Wikipedia の中から関連する文章を検索する',
+      local task = '与えられた質問に対して、Wikipediaから回答となる文章を検索してください。',
       query_prefix: 'Instruct: %s\nQuery: ' % task,
       val_query_dataset: {
         class_path: 'HfRetrievalQueryDataset',

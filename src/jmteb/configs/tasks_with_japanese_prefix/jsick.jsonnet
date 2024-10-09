@@ -2,7 +2,7 @@
   jsick: {
     class_path: 'STSEvaluator',
     init_args: {
-      local task = '類似した意味を持つテキストを検索する',
+      local task = '意味的に類似した文を検索してください。',
       sentence1_prefix: 'Instruct: %s\nQuery: ' % task,
       val_dataset: {
         class_path: 'HfSTSDataset',

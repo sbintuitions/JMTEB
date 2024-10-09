@@ -2,7 +2,7 @@
   nlp_journal_title_intro: {
     class_path: 'RetrievalEvaluator',
     init_args: {
-      local task = '与えられた日本の行政機関のFAQ上の与えられた自然言語処理学会の論文のタイトルから、その論文のイントロ部分の文章を検索する',
+      local task = '与えられた自然言語処理分野の論文のタイトルから、その論文の書き出し(イントロ)を検索してください。',
       query_prefix: 'Instruct: %s\nQuery: ' % task,
       val_query_dataset: {
         class_path: 'HfRetrievalQueryDataset',

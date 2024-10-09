@@ -2,7 +2,7 @@
   nlp_journal_abs_intro: {
     class_path: 'RetrievalEvaluator',
     init_args: {
-      local task = '与えられた自然言語処理学会の論文のアブストラクトから、その論文のタイトルを検索する',
+      local task = '与えられた自然言語処理分野の論文のアブストラクト(概要)から、その論文のタイトルを検索してください',
       query_prefix: 'Instruct: %s\nQuery: ' % task,
       val_query_dataset: {
         class_path: 'HfRetrievalQueryDataset',

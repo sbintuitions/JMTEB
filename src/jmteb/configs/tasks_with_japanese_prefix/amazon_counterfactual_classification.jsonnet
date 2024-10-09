@@ -2,7 +2,7 @@
   amazon_counterfactual_classification: {
     class_path: 'ClassificationEvaluator',
     init_args: {
-      local task = '与えられたアマゾンのお客様レビューのテキストを反事実的か反事実的でないかに分類する',
+      local task = '与えられたアマゾンのお客様レビューのテキストを反事実的か反事実的でないかに分類してください',
       prefix: 'Instruct: %s\nQuery: ' % task,
       train_dataset: {
         class_path: 'HfClassificationDataset',

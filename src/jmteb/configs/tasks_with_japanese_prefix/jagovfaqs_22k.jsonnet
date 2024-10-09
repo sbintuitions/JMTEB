@@ -1,7 +1,7 @@
 {
   jagovfaqs_22k: {
     class_path: 'RetrievalEvaluator',
-    local task = '与えられた日本の行政機関のFAQ上の質問から適切な回答を検索する',
+    local task = '与えられた質問に対する回答として、日本の行政機関のFAQサイトから回答となる文章を検索してください。',
     init_args: {
       query_prefix: 'Instruct: %s\nQuery: ' % task,
       val_query_dataset: {

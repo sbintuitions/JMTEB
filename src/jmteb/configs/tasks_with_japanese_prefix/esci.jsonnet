@@ -2,7 +2,7 @@
   esci: {
     class_path: 'RerankingEvaluator',
     init_args: {
-      local task = '与えられたアマゾンの商品検索のクエリから適切な商品説明を検索する',
+      local task = '与えられたアマゾンの商品検索のクエリから適切な商品説明を検索してください。',
       query_prefix: 'Instruct: %s\nQuery: ' % task,
       val_query_dataset: {
         class_path: 'HfRerankingQueryDataset',
