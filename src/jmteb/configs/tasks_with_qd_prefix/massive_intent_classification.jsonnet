@@ -1,9 +1,8 @@
 {
   massive_intent_classification: {
     class_path: 'ClassificationEvaluator',
-    init_args: {
-      local task = 'クエリとしてユーザー発話が与えられたとき、ユーザーの意図を見つけてください。',
-      prefix: 'Instruct: %s\nQuery: ' % task,
+    init_args: { 
+      prefix: 'Query: ',
       train_dataset: {
         class_path: 'HfClassificationDataset',
         init_args: {

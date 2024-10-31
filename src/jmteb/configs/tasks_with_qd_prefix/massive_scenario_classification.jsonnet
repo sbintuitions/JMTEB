@@ -1,15 +1,14 @@
 {
-  massive_intent_classification: {
+  massive_scenario_classification: {
     class_path: 'ClassificationEvaluator',
     init_args: {
-      local task = 'クエリとしてユーザー発話が与えられたとき、ユーザーの意図を見つけてください。',
-      prefix: 'Instruct: %s\nQuery: ' % task,
+      prefix: 'Query: ',
       train_dataset: {
         class_path: 'HfClassificationDataset',
         init_args: {
           path: 'sbintuitions/JMTEB',
           split: 'train',
-          name: 'massive_intent_classification',
+          name: 'massive_scenario_classification',
         },
       },
       val_dataset: {
@@ -17,7 +16,7 @@
         init_args: {
           path: 'sbintuitions/JMTEB',
           split: 'validation',
-          name: 'massive_intent_classification',
+          name: 'massive_scenario_classification',
         },
       },
       test_dataset: {
@@ -25,7 +24,7 @@
         init_args: {
           path: 'sbintuitions/JMTEB',
           split: 'test',
-          name: 'massive_intent_classification',
+          name: 'massive_scenario_classification',
         },
       },
     },
