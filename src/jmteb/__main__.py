@@ -97,6 +97,16 @@ if __name__ == "__main__":
     if len(args.evaluators) == 0:
         raise ValueError("No evaluator is selected. Please check the config file or the command line arguments.")
 
+    # save config as yaml
+    parser.save(
+        args,
+        Path(args.save_dir) / "jmteb_config.yaml",
+        format="yaml",
+        overwrite=True,
+        multifile=False,
+        skip_check=True,
+    )
+
     args = parser.instantiate_classes(args)
     if isinstance(args.evaluators, str):
         raise ValueError(
