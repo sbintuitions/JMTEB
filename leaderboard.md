@@ -7,7 +7,8 @@ The summary shows the average scores within each task. The average score is the 
 
 | Model                                         | Avg.      | Retrieval   | STS       | Classification   | Reranking   | Clustering   | PairClassification   |
 |:----------------------------------------------|:----------|:------------|:----------|:-----------------|:------------|:-------------|:---------------------|
-| OpenAI/text-embedding-3-large                 | **74.05** | **74.48**   | 82.52     | **77.58**        | **93.58**   | 53.32        | 62.35                |
+| OpenAI/text-embedding-3-large                 | **74.05** | 74.48       | 82.52     | **77.58**        | **93.58**   | 53.32        | 62.35                |
+| jinaai/jina-embeddings-v3                     | 73.44     | **75.22**   | 80.05     | 76.39            | 92.71       | 51.46        | 62.37                |
 | cl-nagoya/ruri-large                          | 73.31     | 73.02       | 83.13     | 77.43            | 92.99       | 51.82        | 62.29                |
 | pkshatech/GLuCoSE-base-ja-v2                  | 72.23     | 73.36       | 82.96     | 74.21            | 93.01       | 48.65        | 62.37                |
 | pkshatech/RoSEtta-base-ja                     | 72.04     | 73.21       | 81.39     | 72.41            | 92.69       | 53.23        | 61.74                |
@@ -38,11 +39,12 @@ The summary shows the average scores within each task. The average score is the 
 ## Retrieval
 | Model                                         | Avg.      | jagovfaqs_22k<br>(ndcg@10)   | jaqket<br>(ndcg@10)   | mrtydi<br>(ndcg@10)   | nlp_journal_abs_intro<br>(ndcg@10)   | nlp_journal_title_abs<br>(ndcg@10)   | nlp_journal_title_intro<br>(ndcg@10)   |
 |:----------------------------------------------|:----------|:-----------------------------|:----------------------|:----------------------|:-------------------------------------|:-------------------------------------|:---------------------------------------|
-| OpenAI/text-embedding-3-large                 | **74.48** | 72.41                        | 48.21                 | 34.88                 | **99.33**                            | 96.55                                | **95.47**                              |
+| jinaai/jina-embeddings-v3                     | **75.22** | 71.50                        | 46.48                 | **45.45**             | 98.43                                | 95.62                                | 93.85                                  |
+| OpenAI/text-embedding-3-large                 | 74.48     | 72.41                        | 48.21                 | 34.88                 | **99.33**                            | 96.55                                | **95.47**                              |
 | pkshatech/GLuCoSE-base-ja-v2                  | 73.36     | 69.79                        | **67.29**             | 41.86                 | 90.29                                | 95.11                                | 75.80                                  |
 | pkshatech/RoSEtta-base-ja                     | 73.21     | 65.96                        | 65.33                 | 36.73                 | 95.54                                | 94.08                                | 81.63                                  |
 | cl-nagoya/ruri-large                          | 73.02     | **76.68**                    | 61.74                 | 38.03                 | 87.12                                | 96.58                                | 77.97                                  |
-| intfloat/multilingual-e5-large                | 70.98     | 70.30                        | 58.78                 | **43.63**             | 86.00                                | 94.70                                | 72.48                                  |
+| intfloat/multilingual-e5-large                | 70.98     | 70.30                        | 58.78                 | 43.63                 | 86.00                                | 94.70                                | 72.48                                  |
 | cl-nagoya/ruri-base                           | 69.82     | 74.56                        | 50.12                 | 35.45                 | 86.89                                | 96.57                                | 75.31                                  |
 | cl-nagoya/ruri-small                          | 69.41     | 73.65                        | 48.44                 | 33.43                 | 87.69                                | **97.17**                            | 76.09                                  |
 | intfloat/multilingual-e5-base                 | 68.21     | 65.34                        | 50.67                 | 38.38                 | 87.10                                | 94.73                                | 73.05                                  |
@@ -79,6 +81,7 @@ The summary shows the average scores within each task. The average score is the 
 | pkshatech/RoSEtta-base-ja                     | 81.39     | 83.83                 | 78.95                |
 | cl-nagoya/unsup-simcse-ja-large               | 80.56     | 80.15                 | 80.98                |
 | intfloat/multilingual-e5-small                | 80.07     | 81.50                 | 78.65                |
+| jinaai/jina-embeddings-v3                     | 80.05     | 78.16                 | 81.93                |
 | intfloat/multilingual-e5-base                 | 79.84     | 81.28                 | 78.39                |
 | intfloat/multilingual-e5-large                | 79.70     | 78.40                 | 80.99                |
 | OpenAI/text-embedding-3-small                 | 79.46     | 80.83                 | 78.08                |
@@ -104,6 +107,7 @@ The summary shows the average scores within each task. The average score is the 
 | cl-nagoya/ruri-large                          | 77.43     | 80.81                                 | 56.80                         | **82.56**                      | 89.56                            |
 | pkshatech/GLuCoSE-base-ja                     | 76.82     | **82.44**                             | 58.07                         | 78.85                          | 87.94                            |
 | oshizo/sbert-jsnli-luke-japanese-base-lite    | 76.61     | 79.95                                 | 57.48                         | 80.26                          | 88.75                            |
+| jinaai/jina-embeddings-v3                     | 76.39     | 78.83                                 | 59.33                         | 77.65                          | 89.74                            |
 | cl-nagoya/ruri-small                          | 76.22     | 79.92                                 | 55.61                         | 81.49                          | 87.88                            |
 | cl-nagoya/ruri-base                           | 75.58     | 76.66                                 | 55.76                         | 81.41                          | 88.49                            |
 | cl-nagoya/unsup-simcse-ja-large               | 74.66     | 76.79                                 | 55.37                         | 79.13                          | 87.36                            |
@@ -141,6 +145,7 @@ The summary shows the average scores within each task. The average score is the 
 | OpenAI/text-embedding-3-small                 | 92.92     | 92.92               |
 | cl-nagoya/ruri-base                           | 92.91     | 92.91               |
 | intfloat/multilingual-e5-base                 | 92.85     | 92.85               |
+| jinaai/jina-embeddings-v3                     | 92.71     | 92.71               |
 | pkshatech/RoSEtta-base-ja                     | 92.69     | 92.69               |
 | pkshatech/GLuCoSE-base-ja                     | 91.90     | 91.90               |
 | cl-nagoya/sup-simcse-ja-base                  | 91.83     | 91.83               |
@@ -167,6 +172,7 @@ The summary shows the average scores within each task. The average score is the 
 | pkshatech/RoSEtta-base-ja                     | 53.23     | **58.62**                            | 47.85                          |
 | cl-nagoya/ruri-large                          | 51.82     | 51.39                                | 52.25                          |
 | cl-nagoya/sup-simcse-ja-base                  | 51.79     | 52.67                                | 50.91                          |
+| jinaai/jina-embeddings-v3                     | 51.46     | 54.72                                | 48.19                          |
 | intfloat/multilingual-e5-large                | 51.24     | 57.13                                | 45.34                          |
 | cl-nagoya/ruri-small                          | 51.19     | 50.96                                | 51.41                          |
 | OpenAI/text-embedding-3-small                 | 51.06     | 54.57                                | 47.55                          |
@@ -204,6 +210,7 @@ The summary shows the average scores within each task. The average score is the 
 | cl-nagoya/ruri-base                           | 62.38     | 62.38                      |
 | oshizo/sbert-jsnli-luke-japanese-base-lite    | 62.38     | 62.38                      |
 | MU-Kindai/Japanese-DiffCSE-BERT-base          | 62.38     | 62.38                      |
+| jinaai/jina-embeddings-v3                     | 62.37     | 62.37                      |
 | pkshatech/GLuCoSE-base-ja-v2                  | 62.37     | 62.37                      |
 | MU-Kindai/Japanese-SimCSE-BERT-base-sup       | 62.37     | 62.37                      |
 | MU-Kindai/Japanese-SimCSE-BERT-large-sup      | 62.35     | 62.35                      |
