@@ -8,6 +8,7 @@ from typing import Callable, TypeVar
 
 import numpy as np
 import torch
+import torch.distributed
 import tqdm
 from loguru import logger
 from torch import Tensor
@@ -78,7 +79,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         model: TextEmbedder,
         cache_dir: str | PathLike[str] | None = None,
         overwrite_cache: bool = False,
-    ) -> EvaluationResults:
+    ) -> EvaluationResults | None:
         model.set_output_tensor()
         if cache_dir is not None:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
@@ -104,6 +105,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             prefix=self.doc_prefix,
             cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            dtype=getattr(model, "dtype", "float32"),
         )
 
         logger.info("Start retrieval")
@@ -113,6 +115,12 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             "dot_score": Similarities.dot_score,
             "euclidean_distance": Similarities.euclidean_distance,
         }
+
+        if torch.distributed.is_initialized():
+            if torch.distributed.get_rank() > 0:
+                return
+            else:
+                logger.info("Evaluation done at rank 0...")
 
         val_results = {}
         for dist_name, dist_func in dist_functions.items():
@@ -153,6 +161,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
     ) -> tuple[dict[str, dict[str, float]], list[RetrievalPrediction]]:
         results: dict[str, float] = {}
         predictions: list[RetrievalPrediction] = [] if self.log_predictions else None
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        query_embeddings = to_tensor(query_embeddings, device=device).float()
         with tqdm.tqdm(total=len(doc_embeddings), desc="Retrieval doc chunks") as pbar:
             top_k_indices_chunks: list[np.ndarray] = []
             top_k_scores_chunks: list[np.ndarray] = []
@@ -167,8 +177,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
                 else:
                     device = "cpu"
 
-                query_embeddings = to_tensor(query_embeddings, device=device)
-                doc_embeddings_chunk = to_tensor(doc_embeddings_chunk, device=device)
+                query_embeddings = to_tensor(query_embeddings, device=device).float()
+                doc_embeddings_chunk = to_tensor(doc_embeddings_chunk, device=device).float()
                 similarity = dist_func(query_embeddings, doc_embeddings_chunk)
 
                 top_k = min(self.max_top_k, similarity.shape[1])  # in case the corpus is smaller than max_top_k
