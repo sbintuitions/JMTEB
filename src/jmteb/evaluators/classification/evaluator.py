@@ -40,6 +40,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         classifiers: dict[str, Classifier] | None = None,
         prefix: str | None = None,
         log_predictions: bool = False,
+        encode_kwargs: dict = {},
     ) -> None:
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -55,6 +56,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         ] or ["macro"]
         self.prefix = prefix
         self.log_predictions = log_predictions
+        self.encode_kwargs = encode_kwargs
         self.main_metric = f"{self.average[0]}_f1"
 
     def __call__(
@@ -69,6 +71,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             prefix=self.prefix,
             cache_path=Path(cache_dir) / "train_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.encode_kwargs,
         )
         y_train = [item.label for item in self.train_dataset]
 
@@ -77,6 +80,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
             prefix=self.prefix,
             cache_path=Path(cache_dir) / "val_embeddings.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.encode_kwargs,
         )
         y_val = [item.label for item in self.val_dataset]
 
@@ -90,6 +94,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
                 prefix=self.prefix,
                 cache_path=Path(cache_dir) / "test_embeddings.bin" if cache_dir is not None else None,
                 overwrite_cache=overwrite_cache,
+                **self.encode_kwargs,
             )
             y_test = [item.label for item in self.test_dataset]
 

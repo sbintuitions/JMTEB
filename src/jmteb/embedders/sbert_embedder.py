@@ -43,7 +43,7 @@ class SentenceBertEmbedder(TextEmbedder):
         else:
             self.set_output_numpy()
 
-    def encode(self, text: str | list[str], prefix: str | None = None) -> np.ndarray:
+    def encode(self, text: str | list[str], prefix: str | None = None, **kwargs) -> np.ndarray:
         if self.add_eos:
             text = self._add_eos_func(text)
         return self.model.encode(
@@ -54,6 +54,7 @@ class SentenceBertEmbedder(TextEmbedder):
             batch_size=self.batch_size,
             device=self.device,
             normalize_embeddings=self.normalize_embeddings,
+            **kwargs,
         )
 
     def _add_eos_func(self, text: str | list[str]) -> str | list[str]:
