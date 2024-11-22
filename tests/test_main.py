@@ -31,5 +31,5 @@ def test_main_cli():
         # fmt: on
         result = subprocess.run(command)
         assert result.returncode == 0
-
+        assert (Path(f) / "jmteb_config.json").exists()
         assert (Path(f) / "summary.json").exists()
