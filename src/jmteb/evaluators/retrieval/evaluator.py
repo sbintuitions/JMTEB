@@ -42,6 +42,8 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         doc_prefix (str | None): prefix for documents. Defaults to None.
         log_predictions (bool): whether to log predictions of each datapoint. Defaults to False.
         top_n_docs_to_log (int): log only top n documents that are predicted as relevant. Defaults to 5.
+        query_encode_kwargs (dict): kwargs passed to embedder's encode function when encoding queries. Defaults to {}.
+        doc_encode_kwargs (dict): kwargs passed to embedder's encode function when encoding documents. Defaults to {}.
     """
 
     def __init__(

@@ -25,6 +25,7 @@ class TextEmbedder(ABC):
         Args:
             text (str | list[str]): text string, or a list of texts.
             prefix (str, optional): the prefix to use for encoding. Default to None.
+            **kwargs: some more settings that may be necessary for specific models.
         """
         raise NotImplementedError
 

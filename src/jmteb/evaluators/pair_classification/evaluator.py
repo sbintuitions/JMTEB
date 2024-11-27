@@ -22,6 +22,7 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
         test_dataset (PairClassificationDataset): test dataset
         sentence1_prefix (str | None): prefix for sentence1. Defaults to None.
         sentence2_prefix (str | None): prefix for sentence2. Defaults to None.
+        encode_kwargs (dict): kwargs passed to embedder's encode function. Default to {}.
 
     # NOTE: Don't log predictions, as predictions by different metrics could be different.
     """

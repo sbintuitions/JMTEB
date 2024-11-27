@@ -29,6 +29,7 @@ class ClassificationEvaluator(EmbeddingEvaluator):
         classifiers (dict[str, Classifier]): classifiers to be evaluated.
         prefix (str | None): prefix for sentences. Defaults to None.
         log_predictions (bool): whether to log predictions of each datapoint.
+        encode_kwargs (dict): kwargs passed to embedder's encode function. Defaults to {}.
     """
 
     def __init__(

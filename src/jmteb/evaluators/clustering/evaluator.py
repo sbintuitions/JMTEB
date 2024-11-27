@@ -24,6 +24,14 @@ from .data import ClusteringDataset, ClusteringPrediction
 class ClusteringEvaluator(EmbeddingEvaluator):
     """
     ClusteringEvaluator is a class for evaluating clustering models.
+
+    Args:
+        val_dataset (ClusteringDataset): validation dataset
+        test_dataset (ClusteringDataset): evaluation dataset
+        prefix (str | None): prefix for sentences. Defaults to None.
+        random_seed (int | None): random seed used in clustering models. Defaults to None.
+        log_predictions (bool): whether to log predictions of each datapoint.
+        encode_kwargs (dict): kwargs passed to embedder's encode function. Defaults to {}.
     """
 
     def __init__(
