@@ -22,6 +22,7 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
         test_dataset (PairClassificationDataset): test dataset
         sentence1_prefix (str | None): prefix for sentence1. Defaults to None.
         sentence2_prefix (str | None): prefix for sentence2. Defaults to None.
+        encode_kwargs (dict): kwargs passed to embedder's encode function. Default to {}.
 
     # NOTE: Don't log predictions, as predictions by different metrics could be different.
     """
@@ -32,11 +33,13 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
         test_dataset: PairClassificationDataset,
         sentence1_prefix: str | None = None,
         sentence2_prefix: str | None = None,
+        encode_kwargs: dict = {},
     ) -> None:
         self.test_dataset = test_dataset
         self.val_dataset = val_dataset
         self.sentence1_prefix = sentence1_prefix
         self.sentence2_prefix = sentence2_prefix
+        self.encode_kwargs = encode_kwargs
         self.metrics = [ThresholdAccuracyMetric(), ThresholdF1Metric()]
         self.main_metric = "binary_f1"
 
@@ -122,12 +125,14 @@ class PairClassificationEvaluator(EmbeddingEvaluator):
             prefix=self.sentence1_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings1.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.encode_kwargs,
         )
         embeddings2 = model.batch_encode_with_cache(
             [item.sentence2 for item in dataset],
             prefix=self.sentence2_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings2.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.encode_kwargs,
         )
         golden_labels = [item.label for item in dataset]
         return embeddings1, embeddings2, golden_labels
