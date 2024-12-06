@@ -97,6 +97,12 @@ class DPSentenceTransformer(SentenceTransformer):
             features = self.sbert.tokenize(sentences_batch)
             features.update(extra_features)
 
+            # `.gather()` in `.forward()` does not support int type, so make it a type that can gather
+            if "prompt_length" in features and isinstance(features["prompt_length"], int):
+                batch_size = len(sentences_batch)
+                prompt_length = torch.Tensor([features["prompt_length"] for _ in range(batch_size)])
+                features["prompt_length"] = prompt_length
+
             with torch.no_grad():
                 out_features = self.forward(features)
 
