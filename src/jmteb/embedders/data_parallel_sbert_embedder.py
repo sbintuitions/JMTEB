@@ -168,7 +168,7 @@ class DPSentenceTransformer(SentenceTransformer):
         return all_embeddings
 
     # Sentence Transformersの`include_prompt`判定メソッドを参考に実装
-    # ref: https://github.com/UKPLab/sentence-transformers/blob/679ab5d38e4cf9cd73d4dcf1cda25ba2ef1ad837/sentence_transformers/trainer.py#L931
+    # ref: https://github.com/UKPLab/sentence-transformers/blob/679ab5d38e4cf9cd73d4dcf1cda25ba2ef1ad837/sentence_transformers/trainer.py#L931 # noqa: E501
     def include_prompt_for_pooling(self) -> bool:
         for module in self:
             if isinstance(module, Pooling):
