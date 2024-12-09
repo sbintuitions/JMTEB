@@ -7,7 +7,8 @@ import numpy as np
 import torch
 from accelerate.utils import find_executable_batch_size
 from loguru import logger
-from sentence_transformers import SentenceTransformer, models
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import Pooling
 from sentence_transformers.quantization import quantize_embeddings
 from sentence_transformers.util import truncate_embeddings
 from torch import Tensor
@@ -166,9 +167,11 @@ class DPSentenceTransformer(SentenceTransformer):
 
         return all_embeddings
 
+    # Sentence Transformersの`include_prompt`判定メソッドを参考に実装
+    # ref: https://github.com/UKPLab/sentence-transformers/blob/679ab5d38e4cf9cd73d4dcf1cda25ba2ef1ad837/sentence_transformers/trainer.py#L931
     def include_prompt_for_pooling(self) -> bool:
         for module in self:
-            if isinstance(module, models.Pooling):
+            if isinstance(module, Pooling):
                 return module.include_prompt
         return True
 
