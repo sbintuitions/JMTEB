@@ -19,7 +19,7 @@ class TestDPSentenceBertEmbedder:
         assert embeddings.shape == (OUTPUT_DIM,)
 
     def test_encode_with_prompt(self):
-        embeddings = self.model.encode("任意のテキスト", prompt="プロンプト")
+        embeddings = self.model.encode("任意のテキスト", prefix="プロンプト")
         assert isinstance(embeddings, np.ndarray)
         assert embeddings.shape == (OUTPUT_DIM,)
 
