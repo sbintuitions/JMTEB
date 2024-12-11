@@ -7,8 +7,9 @@ The summary shows the average scores within each task. The average score is the 
 
 | Model                                         | Avg.      | Retrieval   | STS       | Classification   | Reranking   | Clustering   | PairClassification   |
 |:----------------------------------------------|:----------|:------------|:----------|:-----------------|:------------|:-------------|:---------------------|
-| OpenAI/text-embedding-3-large                 | **74.05** | 74.48       | 82.52     | **77.58**        | **93.58**   | 53.32        | 62.35                |
-| jinaai/jina-embeddings-v3                     | 73.44     | **75.22**   | 80.05     | 76.39            | 92.71       | 51.46        | 62.37                |
+| sbintuitions/sarashina-embedding-v1-1b        | **75.50** | **77.61**   | 82.71     | **78.37**        | **93.74**   | 53.86        | 62.00                |
+| OpenAI/text-embedding-3-large                 | 74.05     | 74.48       | 82.52     | 77.58            | 93.58       | 53.32        | 62.35                |
+| jinaai/jina-embeddings-v3                     | 73.44     | 75.22       | 80.05     | 76.39            | 92.71       | 51.46        | 62.37                |
 | cl-nagoya/ruri-large                          | 73.31     | 73.02       | 83.13     | 77.43            | 92.99       | 51.82        | 62.29                |
 | pkshatech/GLuCoSE-base-ja-v2                  | 72.23     | 73.36       | 82.96     | 74.21            | 93.01       | 48.65        | 62.37                |
 | pkshatech/RoSEtta-base-ja                     | 72.04     | 73.21       | 81.39     | 72.41            | 92.69       | 53.23        | 61.74                |
@@ -39,9 +40,10 @@ The summary shows the average scores within each task. The average score is the 
 ## Retrieval
 | Model                                         | Avg.      | jagovfaqs_22k<br>(ndcg@10)   | jaqket<br>(ndcg@10)   | mrtydi<br>(ndcg@10)   | nlp_journal_abs_intro<br>(ndcg@10)   | nlp_journal_title_abs<br>(ndcg@10)   | nlp_journal_title_intro<br>(ndcg@10)   |
 |:----------------------------------------------|:----------|:-----------------------------|:----------------------|:----------------------|:-------------------------------------|:-------------------------------------|:---------------------------------------|
-| jinaai/jina-embeddings-v3                     | **75.22** | 71.50                        | 46.48                 | **45.45**             | 98.43                                | 95.62                                | 93.85                                  |
+| sbintuitions/sarashina-embedding-v1-1b        | **77.61** | 71.68                        | **72.79**             | 41.95                 | 93.94                                | 96.96                                | 88.33                                  |
+| jinaai/jina-embeddings-v3                     | 75.22     | 71.50                        | 46.48                 | **45.45**             | 98.43                                | 95.62                                | 93.85                                  |
 | OpenAI/text-embedding-3-large                 | 74.48     | 72.41                        | 48.21                 | 34.88                 | **99.33**                            | 96.55                                | **95.47**                              |
-| pkshatech/GLuCoSE-base-ja-v2                  | 73.36     | 69.79                        | **67.29**             | 41.86                 | 90.29                                | 95.11                                | 75.80                                  |
+| pkshatech/GLuCoSE-base-ja-v2                  | 73.36     | 69.79                        | 67.29                 | 41.86                 | 90.29                                | 95.11                                | 75.80                                  |
 | pkshatech/RoSEtta-base-ja                     | 73.21     | 65.96                        | 65.33                 | 36.73                 | 95.54                                | 94.08                                | 81.63                                  |
 | cl-nagoya/ruri-large                          | 73.02     | **76.68**                    | 61.74                 | 38.03                 | 87.12                                | 96.58                                | 77.97                                  |
 | intfloat/multilingual-e5-large                | 70.98     | 70.30                        | 58.78                 | 43.63                 | 86.00                                | 94.70                                | 72.48                                  |
@@ -72,10 +74,11 @@ The summary shows the average scores within each task. The average score is the 
 | Model                                         | Avg.      | jsick<br>(spearman)   | jsts<br>(spearman)   |
 |:----------------------------------------------|:----------|:----------------------|:---------------------|
 | cl-nagoya/sup-simcse-ja-large                 | **83.18** | 83.80                 | 82.57                |
-| cl-nagoya/ruri-large                          | 83.13     | 82.00                 | **84.26**            |
+| cl-nagoya/ruri-large                          | 83.13     | 82.00                 | 84.26                |
 | pkshatech/GLuCoSE-base-ja-v2                  | 82.96     | **84.96**             | 80.96                |
 | cl-nagoya/ruri-base                           | 82.87     | 82.32                 | 83.43                |
 | cl-nagoya/ruri-small                          | 82.79     | 83.44                 | 82.13                |
+| sbintuitions/sarashina-embedding-v1-1b        | 82.71     | 80.22                 | **85.20**            |
 | OpenAI/text-embedding-3-large                 | 82.52     | 81.27                 | 83.77                |
 | cl-nagoya/sup-simcse-ja-base                  | 82.05     | 82.83                 | 81.27                |
 | pkshatech/RoSEtta-base-ja                     | 81.39     | 83.83                 | 78.95                |
@@ -103,7 +106,8 @@ The summary shows the average scores within each task. The average score is the 
 ## Classification
 | Model                                         | Avg.      | amazon_counterfactual<br>(macro_f1)   | amazon_review<br>(macro_f1)   | massive_intent<br>(macro_f1)   | massive_scenario<br>(macro_f1)   |
 |:----------------------------------------------|:----------|:--------------------------------------|:------------------------------|:-------------------------------|:---------------------------------|
-| OpenAI/text-embedding-3-large                 | **77.58** | 77.90                                 | **60.44**                     | 80.91                          | **91.08**                        |
+| sbintuitions/sarashina-embedding-v1-1b        | **78.37** | 79.10                                 | **61.48**                     | 82.26                          | 90.65                            |
+| OpenAI/text-embedding-3-large                 | 77.58     | 77.90                                 | 60.44                         | 80.91                          | **91.08**                        |
 | cl-nagoya/ruri-large                          | 77.43     | 80.81                                 | 56.80                         | **82.56**                      | 89.56                            |
 | pkshatech/GLuCoSE-base-ja                     | 76.82     | **82.44**                             | 58.07                         | 78.85                          | 87.94                            |
 | oshizo/sbert-jsnli-luke-japanese-base-lite    | 76.61     | 79.95                                 | 57.48                         | 80.26                          | 88.75                            |
@@ -135,7 +139,8 @@ The summary shows the average scores within each task. The average score is the 
 ## Reranking
 | Model                                         | Avg.      | esci<br>(ndcg@10)   |
 |:----------------------------------------------|:----------|:--------------------|
-| OpenAI/text-embedding-3-large                 | **93.58** | **93.58**           |
+| sbintuitions/sarashina-embedding-v1-1b        | **93.74** | **93.74**           |
+| OpenAI/text-embedding-3-large                 | 93.58     | 93.58               |
 | OpenAI/text-embedding-ada-002                 | 93.04     | 93.04               |
 | intfloat/multilingual-e5-small                | 93.03     | 93.03               |
 | pkshatech/GLuCoSE-base-ja-v2                  | 93.01     | 93.01               |
@@ -168,6 +173,7 @@ The summary shows the average scores within each task. The average score is the 
 | Model                                         | Avg.      | livedoor_news<br>(v_measure_score)   | mewsc16<br>(v_measure_score)   |
 |:----------------------------------------------|:----------|:-------------------------------------|:-------------------------------|
 | cl-nagoya/ruri-base                           | **54.16** | 54.27                                | **54.04**                      |
+| sbintuitions/sarashina-embedding-v1-1b        | 53.86     | 56.42                                | 51.29                          |
 | OpenAI/text-embedding-3-large                 | 53.32     | 57.09                                | 49.55                          |
 | pkshatech/RoSEtta-base-ja                     | 53.23     | **58.62**                            | 47.85                          |
 | cl-nagoya/ruri-large                          | 51.82     | 51.39                                | 52.25                          |
@@ -226,5 +232,6 @@ The summary shows the average scores within each task. The average score is the 
 | intfloat/multilingual-e5-small                | 62.19     | 62.19                      |
 | intfloat/multilingual-e5-large                | 62.15     | 62.15                      |
 | cl-nagoya/ruri-small                          | 62.11     | 62.11                      |
+| sbintuitions/sarashina-embedding-v1-1b        | 62.00     | 62.00                      |
 | pkshatech/RoSEtta-base-ja                     | 61.74     | 61.74                      |
 
