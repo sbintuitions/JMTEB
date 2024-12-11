@@ -26,6 +26,7 @@ class STSEvaluator(EmbeddingEvaluator):
         test_dataset (STSDataset): test dataset
         sentence1_prefix (str | None): prefix for sentence1. Defaults to None.
         sentence2_prefix (str | None): prefix for sentence2. Defaults to None.
+        encode_kwargs (dict): kwargs passed to embedder's encode function. Defaults to {}.
     """
 
     def __init__(
@@ -35,6 +36,7 @@ class STSEvaluator(EmbeddingEvaluator):
         sentence1_prefix: str | None = None,
         sentence2_prefix: str | None = None,
         log_predictions: bool = False,
+        encode_kwargs: dict = {},
     ) -> None:
         self.val_dataset = val_dataset
         self.test_dataset = test_dataset
@@ -42,6 +44,7 @@ class STSEvaluator(EmbeddingEvaluator):
         self.sentence2_prefix = sentence2_prefix
         self.main_metric = "spearman"
         self.log_predictions = log_predictions
+        self.encode_kwargs = encode_kwargs
 
     def __call__(
         self, model: TextEmbedder, cache_dir: str | PathLike[str] | None = None, overwrite_cache: bool = False
@@ -149,12 +152,14 @@ class STSEvaluator(EmbeddingEvaluator):
             prefix=self.sentence1_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings1.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.encode_kwargs,
         )
         embeddings2 = model.batch_encode_with_cache(
             [item.sentence2 for item in dataset],
             prefix=self.sentence2_prefix,
             cache_path=Path(cache_dir) / f"{split}_embeddings2.bin" if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
+            **self.encode_kwargs,
         )
         device = "cuda" if torch.cuda.is_available() else "cpu"
         embeddings1 = convert_to_tensor(embeddings1, device)
