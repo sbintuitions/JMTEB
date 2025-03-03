@@ -8,6 +8,7 @@ import torch
 from accelerate.utils import find_executable_batch_size
 from loguru import logger
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.models import Pooling
 from sentence_transformers.quantization import quantize_embeddings
 from sentence_transformers.util import truncate_embeddings
 from torch import Tensor
@@ -85,7 +86,10 @@ class DPSentenceTransformer(SentenceTransformer):
             # Some models (e.g. INSTRUCTOR, GRIT) require removing the prompt before pooling
             # Tracking the prompt length allow us to remove the prompt during pooling
             tokenized_prompt = self.sbert.tokenize([prompt])
-            if "input_ids" in tokenized_prompt:
+
+            # When `include_prompt` is True in Pooling, prompt_length is unnecessary and should be removed.
+            # This prevents problems arising from DataParallel
+            if "input_ids" in tokenized_prompt and not self.include_prompt_for_pooling():
                 extra_features["prompt_length"] = tokenized_prompt["input_ids"].shape[-1] - 1
 
         all_embeddings = []
@@ -96,6 +100,13 @@ class DPSentenceTransformer(SentenceTransformer):
             sentences_batch = sentences_sorted[start_index : start_index + batch_size]
             features = self.sbert.tokenize(sentences_batch)
             features.update(extra_features)
+
+            # `.gather()` in `.forward()` does not support int type, so make it a type that can gather
+            # we cast it from an int type to a torch.Tensor type
+            if "prompt_length" in features and isinstance(features["prompt_length"], int):
+                batch_size = len(sentences_batch)
+                prompt_length = torch.Tensor([features["prompt_length"] for _ in range(batch_size)])
+                features["prompt_length"] = prompt_length
 
             with torch.no_grad():
                 out_features = self.forward(features)
@@ -155,6 +166,14 @@ class DPSentenceTransformer(SentenceTransformer):
             all_embeddings = all_embeddings[0]
 
         return all_embeddings
+
+    # Sentence Transformersの`include_prompt`判定メソッドを参考に実装
+    # ref: https://github.com/UKPLab/sentence-transformers/blob/679ab5d38e4cf9cd73d4dcf1cda25ba2ef1ad837/sentence_transformers/trainer.py#L931 # noqa: E501
+    def include_prompt_for_pooling(self) -> bool:
+        for module in self:
+            if isinstance(module, Pooling):
+                return module.include_prompt
+        return True
 
 
 class DataParallelSentenceBertEmbedder(TextEmbedder):
