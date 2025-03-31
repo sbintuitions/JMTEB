@@ -211,8 +211,6 @@ class RerankingEvaluator(EmbeddingEvaluator):
             pred_docs: list[RerankingDoc] = [
                 doc_dataset[doc_dataset.docid_to_idx[pred_docid]] for pred_docid in pred_docids
             ]
-            logger.info(f"{golden_docs=}")
-            logger.info(f"{pred_docs=}")
             prediction = RerankingPrediction(
                 query=q.query,
                 relevant_docs=golden_docs,
