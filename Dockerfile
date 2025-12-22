@@ -1,36 +1,58 @@
-FROM nvidia/cuda:11.2.2-cudnn8-runtime-ubuntu20.04 as base
+# Use CUDA 12.1 for better compatibility with PyTorch 2.6+
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04 AS base
 
-### Install python 3.10 and set it as default python interpreter
-RUN  apt update &&  apt install software-properties-common -y && \
-add-apt-repository ppa:deadsnakes/ppa -y &&  apt update && \
-apt install curl python3.10 build-essential vim -y && \
-update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && \
-update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1 && \
-apt install python3.10-venv python3.10-dev -y && \
-curl -Ss https://bootstrap.pypa.io/get-pip.py | python3.10 && \
-apt-get clean && rm -rf /var/lib/apt/lists/
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-FROM base as build
+# Install Python 3.11 and essential tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-venv \
+    python3.11-dev \
+    python3-pip \
+    build-essential \
+    curl \
+    git \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
+    && pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /tmp
+# Build stage: export dependencies
+FROM base AS builder
 
-RUN pip install poetry
+WORKDIR /build
 
-COPY ./pyproject.toml ./poetry.lock* /tmp/
+# Install poetry
+RUN pip install --no-cache-dir poetry==1.8.2
 
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
+# Copy only dependency files first for better layer caching
+COPY pyproject.toml poetry.lock* ./
 
-FROM base as runtime
+# Export dependencies to requirements.txt
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --only main
+
+# Runtime stage: install application
+FROM base AS runtime
 
 WORKDIR /app
 
-COPY --from=build /tmp/requirements.txt /code/requirements.txt
+# Copy application code and dependency files
+COPY src ./src
+COPY README.md pyproject.toml poetry.lock* ./
 
-RUN pip install --no-cache-dir -r /code/requirements.txt
-RUN python -m unidic download
+# Install poetry temporarily to handle the installation
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir poetry==1.8.2 \
+    && poetry config virtualenvs.create false \
+    && poetry install --only main --no-interaction --no-ansi \
+    && pip uninstall -y poetry
 
-# アプリケーションのコードをコピー
-COPY src /app/src
-COPY README.md /app/README.md
-COPY ./pyproject.toml /app/
-RUN pip install --no-cache-dir -e .
+# Set default command to run JMTEB
+CMD ["python", "-m", "jmteb.v2"]
