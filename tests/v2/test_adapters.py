@@ -2,9 +2,10 @@
 Tests for JMTEB v2.0 adapters (JMTEBModel).
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock, patch
+
+import numpy as np
+import pytest
 
 from jmteb.v2.adapters import JMTEBModel
 

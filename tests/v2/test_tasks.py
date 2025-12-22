@@ -2,8 +2,9 @@
 Tests for JMTEB v2.0 task utilities.
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 
 from jmteb.v2 import tasks
 

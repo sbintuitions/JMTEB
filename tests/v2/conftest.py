@@ -2,9 +2,10 @@
 Pytest configuration and fixtures for JMTEB v2.0 tests.
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock
+
+import numpy as np
+import pytest
 
 
 @pytest.fixture

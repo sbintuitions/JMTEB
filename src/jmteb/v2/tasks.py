@@ -7,7 +7,6 @@ from __future__ import annotations
 import mteb
 from mteb import AbsTask
 
-
 # JMTEB v2.0 consists of 28 tasks aligned with MTEB's JMTEB(v2) benchmark
 JMTEB_TASKS = [
     # Clustering (3 tasks)

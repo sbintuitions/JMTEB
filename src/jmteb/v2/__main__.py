@@ -12,8 +12,8 @@ from loguru import logger
 
 from jmteb.v2.adapters import JMTEBModel
 from jmteb.v2.evaluator import JMTEBV2Evaluator
-from jmteb.v2.tasks import get_jmteb_tasks, get_jmteb_benchmark
-from jmteb.v2.utils import load_prompts, load_batch_sizes
+from jmteb.v2.tasks import get_jmteb_benchmark, get_jmteb_tasks
+from jmteb.v2.utils import load_batch_sizes, load_prompts
 
 
 def get_args():

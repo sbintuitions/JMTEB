@@ -7,15 +7,14 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from loguru import logger
-
 import mteb
+from loguru import logger
 from mteb import AbsTask
 from mteb.cache import ResultCache
 
 from jmteb.v2.adapters import JMTEBModel
-from jmteb.v2.utils import load_summary, save_summary
 from jmteb.v2.tasks import get_task_category
+from jmteb.v2.utils import load_summary, save_summary
 
 
 class JMTEBV2Evaluator:
