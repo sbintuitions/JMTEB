@@ -94,9 +94,7 @@ class JMTEBV2Evaluator:
             return task_result.scores[split][0].get("main_score")
         return None
 
-    def _update_summary(
-        self, task_result, task_name: str, eval_time: float, summary: dict
-    ):
+    def _update_summary(self, task_result, task_name: str, eval_time: float, summary: dict):
         """Update summary with task result."""
         task_category = get_task_category(task_name)
         if not task_category or task_category == "Unknown":
@@ -148,9 +146,7 @@ class JMTEBV2Evaluator:
         if self.save_path:
             summary = load_summary(str(self.save_path))
             if summary:
-                logger.info(
-                    f"Loaded existing summary from {self.save_path}/summary.json"
-                )
+                logger.info(f"Loaded existing summary from {self.save_path}/summary.json")
 
         # Prepare encode_kwargs with batch sizes
         all_results = []
@@ -167,9 +163,7 @@ class JMTEBV2Evaluator:
                 task_name = str(task)
             batch_size = self._get_batch_size(task_name)
 
-            logger.info(
-                f"\n[{idx}/{len(self.tasks)}] Task: {task_name} (batch_size={batch_size})"
-            )
+            logger.info(f"\n[{idx}/{len(self.tasks)}] Task: {task_name} (batch_size={batch_size})")
             logger.info("-" * 80)
 
             start_time = time.time()

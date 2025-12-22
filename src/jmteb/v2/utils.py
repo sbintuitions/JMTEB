@@ -26,9 +26,7 @@ def load_prompts(prompt_config: str | Path) -> dict[str, str]:
         >>> prompts = load_prompts("prompts/e5.yaml")
         >>> print(prompts.get("query", ""))
     """
-    prompt_path = (
-        Path(prompt_config) if isinstance(prompt_config, str) else prompt_config
-    )
+    prompt_path = Path(prompt_config) if isinstance(prompt_config, str) else prompt_config
 
     with open(prompt_path, encoding="utf-8") as f:
         prompts = yaml.safe_load(f)
@@ -50,11 +48,7 @@ def load_batch_sizes(batch_size_config: str | Path) -> dict[str, int]:
         >>> batch_sizes = load_batch_sizes("batch_sizes.yaml")
         >>> print(batch_sizes.get("JSTS", 32))
     """
-    batch_size_path = (
-        Path(batch_size_config)
-        if isinstance(batch_size_config, str)
-        else batch_size_config
-    )
+    batch_size_path = Path(batch_size_config) if isinstance(batch_size_config, str) else batch_size_config
 
     with open(batch_size_path, encoding="utf-8") as f:
         batch_sizes = yaml.safe_load(f)

@@ -243,9 +243,7 @@ def get_jmteb_tasks(
         >>> # Get all retrieval tasks
         >>> tasks = get_jmteb_tasks(task_types=["Retrieval"])
     """
-    return _get_tasks_from_benchmark(
-        get_jmteb_benchmark(), task_names=task_names, task_types=task_types
-    )
+    return _get_tasks_from_benchmark(get_jmteb_benchmark(), task_names=task_names, task_types=task_types)
 
 
 def get_jmteb_lite_tasks(
@@ -275,9 +273,7 @@ def get_jmteb_lite_tasks(
         >>> # Get all retrieval tasks
         >>> tasks = get_jmteb_lite_tasks(task_types=["Retrieval"])
     """
-    return _get_tasks_from_benchmark(
-        get_jmteb_lite_benchmark(), task_names=task_names, task_types=task_types
-    )
+    return _get_tasks_from_benchmark(get_jmteb_lite_benchmark(), task_names=task_names, task_types=task_types)
 
 
 def get_task_by_name(task_name: str, lite: bool = False) -> AbsTask:
@@ -313,8 +309,7 @@ def get_task_by_name(task_name: str, lite: bool = False) -> AbsTask:
 
     if not tasks:
         raise ValueError(
-            f"Task '{task_name}' not found in {benchmark_name} benchmark. "
-            f"Available tasks: {available_tasks}"
+            f"Task '{task_name}' not found in {benchmark_name} benchmark. " f"Available tasks: {available_tasks}"
         )
     return tasks[0]
 

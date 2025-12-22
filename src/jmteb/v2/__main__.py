@@ -18,9 +18,7 @@ from jmteb.v2.utils import load_batch_sizes, load_prompts
 
 def get_args():
     """Parse command-line arguments."""
-    parser = ArgumentParser(
-        description="JMTEB v2.0 - Japanese Massive Text Embedding Benchmark"
-    )
+    parser = ArgumentParser(description="JMTEB v2.0 - Japanese Massive Text Embedding Benchmark")
 
     # Model configuration
     parser.add_argument(

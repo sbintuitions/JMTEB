@@ -27,9 +27,7 @@ class TestJMTEBModel:
 
     def test_init_without_model_raises_error(self):
         """Test that initialization without model raises error."""
-        with pytest.raises(
-            ValueError, match="Either embedder or sentence_transformer must be provided"
-        ):
+        with pytest.raises(ValueError, match="Either embedder or sentence_transformer must be provided"):
             JMTEBModel()
 
     def test_encode_with_embedder(self, mock_embedder, sample_sentences):
@@ -44,9 +42,7 @@ class TestJMTEBModel:
         assert isinstance(result, np.ndarray)
         assert result.shape[0] == 10  # Mock returns 10 embeddings
 
-    def test_encode_with_sentence_transformer(
-        self, mock_sentence_transformer, sample_sentences
-    ):
+    def test_encode_with_sentence_transformer(self, mock_sentence_transformer, sample_sentences):
         """Test encoding with SentenceTransformer."""
         model = JMTEBModel(sentence_transformer=mock_sentence_transformer)
         result = model.encode(sample_sentences, batch_size=32)
@@ -60,9 +56,7 @@ class TestJMTEBModel:
 
     def test_encode_with_kwargs(self, mock_sentence_transformer, sample_sentences):
         """Test encoding with additional kwargs."""
-        model = JMTEBModel(
-            sentence_transformer=mock_sentence_transformer, show_progress_bar=False
-        )
+        model = JMTEBModel(sentence_transformer=mock_sentence_transformer, show_progress_bar=False)
         result = model.encode(sample_sentences, batch_size=64, prompt_name="query")
 
         # Verify kwargs were passed

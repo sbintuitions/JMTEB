@@ -72,9 +72,7 @@ class TestUtils:
         """Test extracting and updating summary for JSTS task."""
         # Create result file
         result_file = tmp_path / "JSTS.json"
-        result_data = {
-            "validation": [{"main_score": 0.8234, "cosine_spearman": 0.8234}]
-        }
+        result_data = {"validation": [{"main_score": 0.8234, "cosine_spearman": 0.8234}]}
         result_file.write_text(json.dumps(result_data))
 
         summary = {}
@@ -160,10 +158,7 @@ class TestUtils:
         assert utils._get_task_key("JSTS") == "jsts"
         assert utils._get_task_key("JaqketRetrieval") == "jaqket"
         assert utils._get_task_key("LivedoorNewsClustering.v2") == "livedoor_news"
-        assert (
-            utils._get_task_key("AmazonReviewsClassification")
-            == "amazon_review_classification"
-        )
+        assert utils._get_task_key("AmazonReviewsClassification") == "amazon_review_classification"
         assert utils._get_task_key("MultiLongDocRetrieval") == "mldr_retrieval"
 
         # Unknown task should be lowercased
