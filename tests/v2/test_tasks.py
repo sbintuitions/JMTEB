@@ -34,8 +34,9 @@ class TestTaskUtilities:
         mock_get_benchmark.assert_called_once_with("JMTEB-lite(v1)")
         assert result == mock_benchmark
 
+    @patch("jmteb.v2.tasks.mteb.get_tasks")
     @patch("jmteb.v2.tasks.get_jmteb_benchmark")
-    def test_get_jmteb_tasks_all(self, mock_benchmark):
+    def test_get_jmteb_tasks_all(self, mock_benchmark, mock_get_tasks):
         """Test getting all JMTEB tasks."""
         mock_task1 = Mock()
         mock_task1.metadata.name = "JSTS"
@@ -43,15 +44,19 @@ class TestTaskUtilities:
         mock_task2.metadata.name = "JSICK"
 
         mock_benchmark.return_value.tasks = [mock_task1, mock_task2]
+        mock_get_tasks.return_value = [mock_task1, mock_task2]
 
         result = tasks.get_jmteb_tasks()
 
         assert len(result) == 2
-        assert result[0] == mock_task1
-        assert result[1] == mock_task2
+        # Check that mteb.get_tasks was called with correct task names
+        mock_get_tasks.assert_called_once_with(
+            tasks=["JSTS", "JSICK"], languages=["jpn"]
+        )
 
+    @patch("jmteb.v2.tasks.mteb.get_tasks")
     @patch("jmteb.v2.tasks.get_jmteb_benchmark")
-    def test_get_jmteb_tasks_filter_by_names(self, mock_benchmark):
+    def test_get_jmteb_tasks_filter_by_names(self, mock_benchmark, mock_get_tasks):
         """Test filtering tasks by names."""
         mock_task1 = Mock()
         mock_task1.metadata.name = "JSTS"
@@ -61,16 +66,19 @@ class TestTaskUtilities:
         mock_task3.metadata.name = "JaqketRetrieval"
 
         mock_benchmark.return_value.tasks = [mock_task1, mock_task2, mock_task3]
+        mock_get_tasks.return_value = [mock_task1, mock_task2]
 
         result = tasks.get_jmteb_tasks(task_names=["JSTS", "JSICK"])
 
         assert len(result) == 2
-        assert mock_task1 in result
-        assert mock_task2 in result
-        assert mock_task3 not in result
+        # Verify mteb.get_tasks was called with filtered task names
+        mock_get_tasks.assert_called_once_with(
+            tasks=["JSTS", "JSICK"], languages=["jpn"]
+        )
 
+    @patch("jmteb.v2.tasks.mteb.get_tasks")
     @patch("jmteb.v2.tasks.get_jmteb_benchmark")
-    def test_get_jmteb_tasks_filter_by_type(self, mock_benchmark):
+    def test_get_jmteb_tasks_filter_by_type(self, mock_benchmark, mock_get_tasks):
         """Test filtering tasks by type."""
         mock_task1 = Mock()
         mock_task1.metadata.name = "JSTS"
@@ -80,28 +88,26 @@ class TestTaskUtilities:
         mock_task2.metadata.type = "Retrieval"
 
         mock_benchmark.return_value.tasks = [mock_task1, mock_task2]
+        mock_get_tasks.return_value = [mock_task1]
 
         result = tasks.get_jmteb_tasks(task_types=["STS"])
 
         assert len(result) == 1
-        assert result[0] == mock_task1
+        # Verify mteb.get_tasks was called with STS task name
+        mock_get_tasks.assert_called_once_with(tasks=["JSTS"], languages=["jpn"])
 
-    @patch("jmteb.v2.tasks.get_jmteb_benchmark")
-    def test_get_jmteb_tasks_filter_by_language(self, mock_benchmark):
-        """Test filtering tasks by language."""
-        mock_task1 = Mock()
-        mock_task1.metadata.name = "JSTS"
-        mock_task1.metadata.languages = ["jpn"]
-        mock_task2 = Mock()
-        mock_task2.metadata.name = "SomeTask"
-        mock_task2.metadata.languages = ["eng"]
+    def test_get_jmteb_tasks_language_restriction(self):
+        """Test that get_jmteb_tasks restricts to Japanese language.
 
-        mock_benchmark.return_value.tasks = [mock_task1, mock_task2]
-
-        result = tasks.get_jmteb_tasks(languages=["jpn"])
-
-        assert len(result) == 1
-        assert result[0] == mock_task1
+        Note: The function always restricts to Japanese (jpn) language,
+        so there's no need for a languages parameter.
+        """
+        # This test just verifies that the function returns tasks
+        # The actual language restriction is tested through integration tests
+        result = tasks.get_jmteb_tasks(task_names=["JSTS"])
+        assert len(result) > 0
+        # Verify it returns a task with Japanese language
+        assert "jpn" in result[0].metadata.languages
 
     @patch("jmteb.v2.tasks.get_jmteb_tasks")
     def test_get_task_by_name_success(self, mock_get_tasks):
@@ -127,7 +133,9 @@ class TestTaskUtilities:
         """Test getting task category."""
         assert tasks.get_task_category("JSTS") == "STS"
         assert tasks.get_task_category("JaqketRetrieval") == "Retrieval"
-        assert tasks.get_task_category("AmazonReviewsClassification") == "Classification"
+        assert (
+            tasks.get_task_category("AmazonReviewsClassification") == "Classification"
+        )
         assert tasks.get_task_category("LivedoorNewsClustering.v2") == "Clustering"
         assert tasks.get_task_category("ESCIReranking") == "Reranking"
         assert tasks.get_task_category("UnknownTask") == "Unknown"
@@ -136,7 +144,9 @@ class TestTaskUtilities:
         """Test converting v1 task names to v2."""
         assert tasks.convert_v1_task_name("jsts") == "JSTS"
         assert tasks.convert_v1_task_name("jaqket") == "JaqketRetrieval"
-        assert tasks.convert_v1_task_name("livedoor_news") == "LivedoorNewsClustering.v2"
+        assert (
+            tasks.convert_v1_task_name("livedoor_news") == "LivedoorNewsClustering.v2"
+        )
         # Unknown task should return as-is
         assert tasks.convert_v1_task_name("unknown_task") == "unknown_task"
 
