@@ -221,7 +221,7 @@ Configure prompts for models that require them (e.g., E5):
 ```yaml
 # src/jmteb/configs/prompts/e5.yaml
 query: "query: "
-passage: "passage: "
+document: "passage: "
 ```
 
 ```python
