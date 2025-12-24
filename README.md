@@ -5,6 +5,7 @@ JMTEB v2.0 is a major update to the Japanese Massive Text Embedding Benchmark th
 ## Overview
 
 JMTEB v2.0 provides:
+
 - 🌐 **MTEB Compatibility**: Integration with MTEB tools, leaderboards, and ecosystem
 - 🚀 **MTEB as Evaluation Engine**: Leverage MTEB's robust framework
 - 🎯 **Simpler API**: Cleaner, more intuitive interface
@@ -99,6 +100,7 @@ src/jmteb/v2/
 ### Key Classes
 
 #### 1. JMTEBModel
+
 Adapter that bridges models with MTEB's evaluation system.
 
 ```python
@@ -113,6 +115,7 @@ model = JMTEBModel.from_mteb("cl-nagoya/ruri-v3-30m")
 ```
 
 #### 2. JMTEBV2Evaluator
+
 Orchestrates evaluation across multiple tasks.
 
 ```python
@@ -131,6 +134,7 @@ results = evaluator.run()
 ```
 
 #### 3. Task Utilities
+
 Functions for working with JMTEB tasks.
 
 ```python
@@ -166,6 +170,7 @@ JMTEB v2.0 includes 28 datasets across 5 task types.
 Both versions include the same 28 datasets:
 
 ### Classification (7 datasets)
+
 - AmazonReviewsClassification
 - AmazonCounterfactualClassification
 - MassiveIntentClassification
@@ -175,15 +180,18 @@ Both versions include the same 28 datasets:
 - WRIMEClassification
 
 ### Clustering (3 datasets)
+
 - LivedoorNewsClustering.v2
 - MewsC16JaClustering
 - SIB200ClusteringS2S
 
 ### STS (2 datasets)
+
 - JSTS
 - JSICK
 
 ### Retrieval (11 datasets)
+
 - JaqketRetrieval (→ JaqketRetrievalLite in JMTEB-lite)
 - MrTidyRetrieval (→ MrTyDiJaRetrievalLite in JMTEB-lite)
 - JaGovFaqsRetrieval
@@ -197,6 +205,7 @@ Both versions include the same 28 datasets:
 - MultiLongDocRetrieval
 
 ### Reranking (5 datasets)
+
 - ESCIReranking
 - JQaRAReranking (→ JQaRARerankingLite in JMTEB-lite)
 - JaCWIRReranking (→ JaCWIRRerankingLite in JMTEB-lite)
@@ -395,6 +404,7 @@ results_v2/
 ```
 
 Each dataset result file contains:
+
 ```json
 {
   "test": [
@@ -415,6 +425,7 @@ See [MIGRATION_V2.md](./docs/MIGRATION_V2.md) for a comprehensive migration guid
 Quick comparison:
 
 **v1.x:**
+
 ```python
 from jmteb.embedders import SentenceBertEmbedder
 embedder = SentenceBertEmbedder(model_name_or_path="cl-nagoya/ruri-base")
@@ -422,6 +433,7 @@ embedder = SentenceBertEmbedder(model_name_or_path="cl-nagoya/ruri-base")
 ```
 
 **v2.0:**
+
 ```python
 from jmteb.v2 import JMTEBModel, JMTEBV2Evaluator
 from jmteb.v2.tasks import get_jmteb_tasks
@@ -442,9 +454,14 @@ evaluator.run()
 
 ## Examples
 
-See the `examples/` directory for complete examples:
+See the `docs/examples/v2/` directory for complete examples:
+
 - `v2_basic_evaluation.py`: Basic usage
 - `v2_cli_evaluation.sh`: CLI examples
+- `v2_jmteb_lite.py`: JMTEB-lite usage
+- `v2_mteb_model_loader.py`: Using MTEB's model loader
+
+For v1.x examples, see `docs/examples/v1/`.
 
 ## Requirements
 
@@ -481,6 +498,7 @@ Same as JMTEB v1.x. See LICENSE file.
 ## Contributing
 
 Contributions are welcome! Please:
+
 1. Follow existing code style
 2. Add tests for new features
 3. Update documentation

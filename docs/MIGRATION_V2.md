@@ -12,6 +12,7 @@ This guide helps you migrate from JMTEB v1.x to v2.0.
 JMTEB v2.0 is now the default. See [README.md](../README.md#installation) for installation instructions.
 
 **TL;DR:**
+
 ```bash
 # v2.0 only (default)
 poetry install
@@ -23,6 +24,7 @@ poetry install --extras v1
 ### Do I Need to Migrate?
 
 **Yes, eventually.** While v1.x code will continue to work for now, the v1.x API is deprecated and will no longer be actively maintained. We recommend migrating to v2.0 for:
+
 - Continued support and bug fixes
 - New features and improvements
 - Better performance and MTEB ecosystem integration
@@ -50,6 +52,7 @@ evaluator = STSEvaluator(val_dataset=dataset["validation"])
 metrics = evaluator(embedder)
 print(metrics)
 ```
+
 </details>
 
 <details open>
@@ -73,9 +76,11 @@ evaluator = JMTEBV2Evaluator(
 )
 results = evaluator.run()
 ```
+
 </details>
 
 **Key Differences:**
+
 - No manual dataset loading required
 - Single evaluator handles all tasks
 - Automatic caching and summary generation
@@ -101,6 +106,7 @@ jaqket_metrics = jaqket_eval(embedder)
 amazon_eval = ClassificationEvaluator(...)
 amazon_metrics = amazon_eval(embedder)
 ```
+
 </details>
 
 <details open>
@@ -124,6 +130,7 @@ evaluator = JMTEBV2Evaluator(
 )
 results = evaluator.run()
 ```
+
 </details>
 
 ### Example 3: Wrapping v1 Embedders
@@ -232,6 +239,7 @@ passage: "passage: "
 ```
 
 Load and use:
+
 ```python
 from jmteb.v2.utils import load_prompts
 
@@ -243,6 +251,7 @@ model = JMTEBModel.from_sentence_transformer(
 ```
 
 Or via CLI:
+
 ```bash
 python -m jmteb.v2 \
   --model_name intfloat/multilingual-e5-base \
@@ -277,6 +286,7 @@ evaluator = JMTEBV2Evaluator(
 ## Results Format Changes
 
 ### v1.x Results Structure
+
 ```json
 {
   "spearman": 0.8234,
@@ -285,6 +295,7 @@ evaluator = JMTEBV2Evaluator(
 ```
 
 ### v2.0 Results Structure
+
 ```json
 {
   "validation": [
@@ -299,12 +310,14 @@ evaluator = JMTEBV2Evaluator(
 ```
 
 **Key Changes:**
+
 - Results organized by split (test/validation/dev)
 - `main_score` field indicates the primary metric
 - More detailed metrics included
 - MTEB-compatible format
 
 **Extracting Main Score:**
+
 ```python
 # v2.0
 with open("results_v2/model/JSTS.json") as f:
@@ -317,11 +330,13 @@ with open("results_v2/model/JSTS.json") as f:
 ### Do the results change between v1 and v2?
 
 The evaluation logic is identical for most tasks, so results are directly comparable. Minor differences may occur for:
+
 - `MultiLongDocRetrieval` and `MultiLongDocReranking` (corpus size differences)
 
 ### Can I use both v1 and v2 in the same project?
 
 Yes! They are separate modules:
+
 ```python
 # v1.x
 from jmteb.embedders import SentenceBertEmbedder
@@ -333,6 +348,7 @@ from jmteb.v2 import JMTEBModel
 ### What happens to my v1 code when I install v2?
 
 Nothing! v1 code continues to work as-is. Install v2 dependencies with:
+
 ```bash
 poetry install --extras v1  # Includes both v1 and v2
 ```
@@ -344,6 +360,7 @@ The underlying metrics are the same, so you can manually convert if needed. Howe
 ### What about OpenAI/custom embedders?
 
 They work in v2:
+
 ```python
 # OpenAI
 from jmteb.embedders import OpenAIEmbedder

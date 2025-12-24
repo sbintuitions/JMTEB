@@ -439,6 +439,7 @@ print(f"NDCG@10: {results['JapaneseQARetrieval']['test']['ndcg_at_10']}")
 ## Need Help?
 
 If you encounter issues:
+
 1. Check that your data format matches MTEB requirements
 2. Look at existing JMTEB task implementations for reference
 3. Ensure your task metadata is complete and correct
