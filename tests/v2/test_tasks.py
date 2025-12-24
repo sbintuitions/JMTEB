@@ -50,9 +50,7 @@ class TestTaskUtilities:
 
         assert len(result) == 2
         # Check that mteb.get_tasks was called with correct task names
-        mock_get_tasks.assert_called_once_with(
-            tasks=["JSTS", "JSICK"], languages=["jpn"]
-        )
+        mock_get_tasks.assert_called_once_with(tasks=["JSTS", "JSICK"], languages=["jpn"])
 
     @patch("jmteb.v2.tasks.mteb.get_tasks")
     @patch("jmteb.v2.tasks.get_jmteb_benchmark")
@@ -72,9 +70,7 @@ class TestTaskUtilities:
 
         assert len(result) == 2
         # Verify mteb.get_tasks was called with filtered task names
-        mock_get_tasks.assert_called_once_with(
-            tasks=["JSTS", "JSICK"], languages=["jpn"]
-        )
+        mock_get_tasks.assert_called_once_with(tasks=["JSTS", "JSICK"], languages=["jpn"])
 
     @patch("jmteb.v2.tasks.mteb.get_tasks")
     @patch("jmteb.v2.tasks.get_jmteb_benchmark")
@@ -133,9 +129,7 @@ class TestTaskUtilities:
         """Test getting task category."""
         assert tasks.get_task_category("JSTS") == "STS"
         assert tasks.get_task_category("JaqketRetrieval") == "Retrieval"
-        assert (
-            tasks.get_task_category("AmazonReviewsClassification") == "Classification"
-        )
+        assert tasks.get_task_category("AmazonReviewsClassification") == "Classification"
         assert tasks.get_task_category("LivedoorNewsClustering.v2") == "Clustering"
         assert tasks.get_task_category("ESCIReranking") == "Reranking"
         assert tasks.get_task_category("UnknownTask") == "Unknown"
@@ -144,9 +138,7 @@ class TestTaskUtilities:
         """Test converting v1 task names to v2."""
         assert tasks.convert_v1_task_name("jsts") == "JSTS"
         assert tasks.convert_v1_task_name("jaqket") == "JaqketRetrieval"
-        assert (
-            tasks.convert_v1_task_name("livedoor_news") == "LivedoorNewsClustering.v2"
-        )
+        assert tasks.convert_v1_task_name("livedoor_news") == "LivedoorNewsClustering.v2"
         # Unknown task should return as-is
         assert tasks.convert_v1_task_name("unknown_task") == "unknown_task"
 
