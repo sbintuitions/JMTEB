@@ -1,0 +1,79 @@
+### Clustering (3)
+LivedoorNewsClustering.v2: "トピック: "
+MewsC16JaClustering: "トピック: "
+SIB200ClusteringS2S: "トピック: "
+
+### Classification (7)
+AmazonReviewsClassification: "トピック: "
+AmazonCounterfactualClassification: "トピック: "
+MassiveIntentClassification: "トピック: "
+MassiveScenarioClassification: "トピック: "
+JapaneseSentimentClassification: "トピック: "
+SIB200Classification: "トピック: "
+WRIMEClassification: "トピック: "
+
+### STS (2)
+JSTS: ""
+JSICK: ""
+
+### Retrieval (11 + 4 lite variants)
+JaqketRetrieval-query: "検索クエリ: "
+JaqketRetrieval-document: "検索文書: "
+JaqketRetrievalLite-query: "検索クエリ: "
+JaqketRetrievalLite-document: "検索文書: "
+
+MrTidyRetrieval-query: "検索クエリ: "
+MrTidyRetrieval-document: "検索文書: "
+MrTyDiJaRetrievalLite-query: "検索クエリ: "
+MrTyDiJaRetrievalLite-document: "検索文書: "
+
+JaGovFaqsRetrieval-query: "検索クエリ: "
+JaGovFaqsRetrieval-document: "検索文書: "
+
+NLPJournalTitleAbsRetrieval.V2-query: "検索クエリ: "
+NLPJournalTitleAbsRetrieval.V2-document: "検索文書: "
+
+NLPJournalTitleIntroRetrieval.V2-query: "検索クエリ: " 
+NLPJournalTitleIntroRetrieval.V2-document: "検索文書: "
+
+NLPJournalAbsIntroRetrieval.V2-query: "検索クエリ: "
+NLPJournalAbsIntroRetrieval.V2-document: "検索文書: "
+
+NLPJournalAbsArticleRetrieval.V2-query: "検索クエリ: "
+NLPJournalAbsArticleRetrieval.V2-document: "検索文書: "
+
+JaCWIRRetrieval-query: "検索クエリ: "
+JaCWIRRetrieval-document: "検索文書: "
+JaCWIRRetrievalLite-query: "検索クエリ: "
+JaCWIRRetrievalLite-document: "検索文書: "
+
+MIRACLRetrieval-query: "検索クエリ: "
+MIRACLRetrieval-document: "検索文書: "
+MIRACLJaRetrievalLite-query: "検索クエリ: "
+MIRACLJaRetrievalLite-document: "検索文書: "
+
+MintakaRetrieval-query: "検索クエリ: "
+MintakaRetrieval-document: "検索文書: "
+
+MultiLongDocRetrieval-query: "検索クエリ: "
+MultiLongDocRetrieval-document: "検索文書: "
+
+### Reranking (5 + 2 lite variants)
+ESCIReranking-query: "検索クエリ: "
+ESCIReranking-document: "検索文書: "
+
+JQaRAReranking-query: "検索クエリ: "
+JQaRAReranking-document: "検索文書: "
+JQaRARerankingLite-query: "検索クエリ: "
+JQaRARerankingLite-document: "検索文書: "
+
+JaCWIRReranking-query: "検索クエリ: "
+JaCWIRReranking-document: "検索文書: "
+JaCWIRRerankingLite-query: "検索クエリ: "
+JaCWIRRerankingLite-document: "検索文書: "
+
+MIRACLReranking-query: "検索クエリ: "
+MIRACLReranking-document: "検索文書: "
+
+MultiLongDocReranking-query: "検索クエリ: "
+MultiLongDocReranking-document: "検索文書: "
