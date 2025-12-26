@@ -383,12 +383,9 @@ python -m jmteb.v2 \
 | Feature | v1.x | v2.0 |
 |---------|------|------|
 | Evaluation Engine | Custom | MTEB |
-| API Complexity | High | Low |
 | Dataset Count | 28 | 28 |
-| Caching | Basic | Advanced |
 | Batch Configuration | Per-embedder | Global + Per-task |
 | Prompt Support | Limited | Full |
-| Summary Generation | Manual | Automatic |
 | MTEB Compatibility | No | Yes |
 
 ## Output Structure
