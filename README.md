@@ -473,18 +473,25 @@ For v1.x examples, see `docs/examples/v1/`.
 If you use JMTEB v2.0, please cite both JMTEB and MTEB:
 
 ```bibtex
-@article{jmteb2024,
-  title={JMTEB: Japanese Massive Text Embedding Benchmark},
-  author={...},
-  journal={...},
-  year={2024}
+@inproceedings{li2026jmteb,
+    author = {Li, Shengzhe and Ohagi, Masaya and Ri, Ryokan and Fukuchi, Akihiko and Shibata, Tomohide and Kawahara, Daisuke},
+    title = {{JMTEB and JMTEB-lite: Japanese Massive Text Embedding Benchmark and Its Lightweight Version}},
+    booktitle = "Proceedings of the Thirteenth Language Resources and Evaluation Conference",
+    month = may,
+    year = "2026",
+    address = "Palma, Mallorca, Spain",
+    publisher = "European Language Resources Association",
+    note = "to appear",
 }
 
-@article{mteb2024,
-  title={MTEB: Massive Text Embedding Benchmark},
-  author={Muennighoff, Niklas and others},
+@article{muennighoff2022mteb,
+  author = {Muennighoff, Niklas and Tazi, Nouamane and Magne, Loïc and Reimers, Nils},
+  title = {MTEB: Massive Text Embedding Benchmark},
+  publisher = {arXiv},
   journal={arXiv preprint arXiv:2210.07316},
-  year={2024}
+  year = {2022}
+  url = {https://arxiv.org/abs/2210.07316},
+  doi = {10.48550/ARXIV.2210.07316},
 }
 ```
 
