@@ -2,7 +2,6 @@
 
 ## Important classes
 
-
 ```mermaid
 classDiagram
     class EmbeddingEvaluator {
@@ -28,6 +27,7 @@ poetry run python main.py \
 ```
 
 The overview of `main.py` is as follows:
+
 - there are multiple `EmbeddingEvaluator` instances
 - each `EmbeddingEvaluator` instance is responsible for evaluating `TextEmbedder` on a specific task and a dataset
 - `EmbeddingEvaluator` outputs metrics and these results are logged
@@ -41,6 +41,7 @@ You can see the classes implementing `EmbeddingEvaluator` under `src/evaluators/
 These classes typically have some dataset to load instances.
 
 `EmbeddingEvaluator` takes a `TextEmbedder` instance with `__call__`, and the following happens:
+
 - extract text data from datasets and pass them to `TextEmbedder`
 - get the embeddings from `TextEmbedder`
   - optionally cache the embeddings or load them from cache

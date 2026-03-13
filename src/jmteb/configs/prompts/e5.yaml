@@ -1,0 +1,14 @@
+# E5 Model Prompt Configuration
+# Prompts are specified by task type rather than individual datasets
+
+### Single-text tasks (Clustering, Classification, STS)
+Clustering: "query: "
+Classification: "query: "
+STS: "query: "
+
+### Dual-text tasks (Retrieval, Reranking)
+Retrieval-query: "query: "
+Retrieval-document: "passage: "
+
+Reranking-query: "query: "
+Reranking-document: "passage: "
