@@ -13,7 +13,7 @@ description = "The evaluation scripts for JMTEB (Japanese Massive Text Embedding
 name = "JMTEB"
 packages = [{from = "src", include = "jmteb"}]
 readme = "README.md"
-version = "2.0.0rc"
+version = "2.0.0"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.15"
