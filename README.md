@@ -476,7 +476,7 @@ If you use JMTEB v2.0, please cite both JMTEB and MTEB:
 @inproceedings{li2026jmteb,
     author = {Li, Shengzhe and Ohagi, Masaya and Ri, Ryokan and Fukuchi, Akihiko and Shibata, Tomohide and Kawahara, Daisuke},
     title = {{JMTEB and JMTEB-lite: Japanese Massive Text Embedding Benchmark and Its Lightweight Version}},
-    booktitle = "Proceedings of the Thirteenth Language Resources and Evaluation Conference",
+    booktitle = "Proceedings of the Fifteenth Language Resources and Evaluation Conference",
     month = may,
     year = "2026",
     address = "Palma, Mallorca, Spain",
