@@ -128,10 +128,14 @@ class RetrievalEvaluator(EmbeddingEvaluator):
                 **query_kwargs,
             )
 
+        corpus_docs, had_duplicate_docids = self._unique_corpus_docs()
+        corpus_cache_name = (
+            "corpus_unique_docids.bin" if had_duplicate_docids else "corpus.bin"
+        )
         doc_embeddings = model.batch_encode_with_cache(
-            text_list=[item.text for item in self.doc_dataset],
+            text_list=[item.text for item in corpus_docs],
             prefix=self.doc_prefix,
-            cache_path=Path(cache_dir) / "corpus.bin" if cache_dir is not None else None,
+            cache_path=Path(cache_dir) / corpus_cache_name if cache_dir is not None else None,
             overwrite_cache=overwrite_cache,
             **doc_kwargs,
         )
@@ -150,6 +154,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
                 query_dataset=self.val_query_dataset,
                 query_embeddings=val_query_embeddings,
                 doc_embeddings=doc_embeddings,
+                doc_ids=[item.id for item in corpus_docs],
                 dist_func=dist_func,
             )
         sorted_val_results = sorted(val_results.items(), key=lambda res: res[1][self.main_metric], reverse=True)
@@ -159,6 +164,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             query_dataset=self.test_query_dataset,
             query_embeddings=test_query_embeddings,
             doc_embeddings=doc_embeddings,
+            doc_ids=[item.id for item in corpus_docs],
             dist_func=dist_functions[optimal_dist_name],
         )
         test_results = {optimal_dist_name: test_scores}
@@ -174,11 +180,30 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             predictions=test_predictions,
         )
 
+    def _unique_corpus_docs(self) -> tuple[list[RetrievalDoc], bool]:
+        """Return one document per ID, preserving the corpus's original order."""
+        docs: list[RetrievalDoc] = []
+        seen_docids: set[str | int] = set()
+        for item in self.doc_dataset:
+            if item.id in seen_docids:
+                continue
+            seen_docids.add(item.id)
+            docs.append(item)
+
+        had_duplicate_docids = len(docs) != len(self.doc_dataset)
+        if had_duplicate_docids:
+            logger.warning(
+                "Dropped {} duplicate corpus entries with repeated document IDs before retrieval.",
+                len(self.doc_dataset) - len(docs),
+            )
+        return docs, had_duplicate_docids
+
     def _compute_metrics(
         self,
         query_dataset: RetrievalQueryDataset,
         query_embeddings: np.ndarray | Tensor,
         doc_embeddings: np.ndarray | Tensor,
+        doc_ids: list[str | int],
         dist_func: Callable[[Tensor, Tensor], Tensor],
     ) -> tuple[dict[str, dict[str, float]], list[RetrievalPrediction]]:
         results: dict[str, float] = {}
@@ -221,7 +246,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
         sorted_top_k_indices = torch.take_along_dim(top_k_indices, sorting_indices_for_top_k, axis=1).tolist()
 
         golden_doc_ids = [item.relevant_docs for item in query_dataset]
-        retrieved_doc_ids = [[self.doc_dataset[i].id for i in indices] for indices in sorted_top_k_indices]
+        retrieved_doc_ids = [[doc_ids[i] for i in indices] for indices in sorted_top_k_indices]
 
         predictions = (
             self._format_predictions(query_dataset, self.doc_dataset, retrieved_doc_ids, self.top_n_docs_to_log)
@@ -299,8 +324,9 @@ def ndcg_at_k(relevant_docs: list[list[T]], top_hits: list[list[T]], k: int) -> 
             warnings.warn("Query with no relevant documents found. Skip that from metric calculation.")
             continue
 
+        unique_top_hits = list(dict.fromkeys(query_top_hits))
         dcg = 0
-        for rank, hit in enumerate(query_top_hits[0:k], start=1):
+        for rank, hit in enumerate(unique_top_hits[0:k], start=1):
             if hit in query_rel_docs:
                 dcg += 1.0 / np.log2(rank + 1)
         idcg = sum([1 / np.log2(rank + 1) for rank in range(1, len(query_rel_docs) + 1)])
