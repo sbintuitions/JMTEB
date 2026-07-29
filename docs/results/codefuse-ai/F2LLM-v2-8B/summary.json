@@ -1,0 +1,96 @@
+{
+    "Classification": {
+        "amazon_counterfactual_classification": {
+            "macro_f1": 0.8633867429027324
+        },
+        "amazon_review_classification": {
+            "macro_f1": 0.6192663607174334
+        },
+        "japanese_sentiment_classification": {
+            "macro_f1": 0.9835973904939421
+        },
+        "massive_intent_classification": {
+            "macro_f1": 0.8588466092139637
+        },
+        "massive_scenario_classification": {
+            "macro_f1": 0.9280176152404098
+        },
+        "sib200_japanese_classification": {
+            "macro_f1": 0.9018363724372269
+        },
+        "wrime_classification": {
+            "macro_f1": 0.5013394607439277
+        }
+    },
+    "Reranking": {
+        "esci": {
+            "ndcg@10": 0.9404395796310778
+        },
+        "jacwir_reranking": {
+            "ndcg@10": 0.8621780656548821
+        },
+        "jqara": {
+            "ndcg@10": 0.6560313266127952
+        },
+        "miracl_reranking": {
+            "ndcg@10": 0.8633124064271545
+        },
+        "mldr_reranking": {
+            "ndcg@10": 0.9361660930214619
+        }
+    },
+    "Retrieval": {
+        "jacwir_retrieval": {
+            "ndcg@10": 0.8151580742047243
+        },
+        "jagovfaqs_22k": {
+            "ndcg@10": 0.8091571080468444
+        },
+        "jaqket": {
+            "ndcg@10": 0.6917397284397278
+        },
+        "mintaka_retrieval": {
+            "ndcg@10": 0.5658640653402264
+        },
+        "miracl_retrieval": {
+            "ndcg@10": 0.688661930360573
+        },
+        "mldr_retrieval": {
+            "ndcg@10": 0.48012191916753877
+        },
+        "mrtydi": {
+            "ndcg@10": 0.5398817539897013
+        },
+        "nlp_journal_abs_article": {
+            "ndcg@10": 0.9980392156862745
+        },
+        "nlp_journal_abs_intro": {
+            "ndcg@10": 0.994751893762329
+        },
+        "nlp_journal_title_abs": {
+            "ndcg@10": 0.9814252114489598
+        },
+        "nlp_journal_title_intro": {
+            "ndcg@10": 0.9868809755602247
+        }
+    },
+    "STS": {
+        "jsick": {
+            "spearman": 0.8516135393493846
+        },
+        "jsts": {
+            "spearman": 0.8564951622930326
+        }
+    },
+    "Clustering": {
+        "livedoor_news": {
+            "v_measure_score": 0.58209138144179
+        },
+        "mewsc16": {
+            "v_measure_score": 0.5861480522479838
+        },
+        "sib200_japanese_clustering": {
+            "v_measure_score": 0.7745784588213288
+        }
+    }
+}

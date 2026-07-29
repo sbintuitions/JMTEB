@@ -1,0 +1,96 @@
+{
+    "Retrieval": {
+        "nlp_journal_abs_intro": {
+            "ndcg@10": 0.9931837627731095
+        },
+        "nlp_journal_title_abs": {
+            "ndcg@10": 0.9818712085365539
+        },
+        "nlp_journal_title_intro": {
+            "ndcg@10": 0.9857419494620187
+        },
+        "jacwir_retrieval": {
+            "ndcg@10": 0.817564163710829
+        },
+        "jagovfaqs_22k": {
+            "ndcg@10": 0.821724847607727
+        },
+        "jaqket": {
+            "ndcg@10": 0.7373084440245158
+        },
+        "mintaka_retrieval": {
+            "ndcg@10": 0.6071003684994265
+        },
+        "miracl_retrieval": {
+            "ndcg@10": 0.6918092521442171
+        },
+        "mldr_retrieval": {
+            "ndcg@10": 0.48426916054856484
+        },
+        "mrtydi": {
+            "ndcg@10": 0.5674291984828849
+        },
+        "nlp_journal_abs_article": {
+            "ndcg@10": 0.9973155485364147
+        }
+    },
+    "Classification": {
+        "sib200_japanese_classification": {
+            "macro_f1": 0.8739535073553854
+        },
+        "wrime_classification": {
+            "macro_f1": 0.5218750702068002
+        },
+        "amazon_counterfactual_classification": {
+            "macro_f1": 0.8479013149859544
+        },
+        "amazon_review_classification": {
+            "macro_f1": 0.6289935921695979
+        },
+        "japanese_sentiment_classification": {
+            "macro_f1": 0.9852667142051011
+        },
+        "massive_intent_classification": {
+            "macro_f1": 0.8611890788473413
+        },
+        "massive_scenario_classification": {
+            "macro_f1": 0.9329056099966423
+        }
+    },
+    "Clustering": {
+        "sib200_japanese_clustering": {
+            "v_measure_score": 0.7079913306456623
+        },
+        "livedoor_news": {
+            "v_measure_score": 0.6275057991719535
+        },
+        "mewsc16": {
+            "v_measure_score": 0.6018304432650405
+        }
+    },
+    "Reranking": {
+        "esci": {
+            "ndcg@10": 0.9418181225881957
+        },
+        "jacwir_reranking": {
+            "ndcg@10": 0.8604798131434632
+        },
+        "jqara": {
+            "ndcg@10": 0.6806671152287654
+        },
+        "miracl_reranking": {
+            "ndcg@10": 0.8674707979502704
+        },
+        "mldr_reranking": {
+            "ndcg@10": 0.9349246339258473
+        }
+    },
+    "STS": {
+        "jsick": {
+            "spearman": 0.8457601334970263
+        },
+        "jsts": {
+            "spearman": 0.8602349147338334
+        }
+    }
+}
