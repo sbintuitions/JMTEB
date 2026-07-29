@@ -129,9 +129,7 @@ class RetrievalEvaluator(EmbeddingEvaluator):
             )
 
         corpus_docs, had_duplicate_docids = self._unique_corpus_docs()
-        corpus_cache_name = (
-            "corpus_unique_docids.bin" if had_duplicate_docids else "corpus.bin"
-        )
+        corpus_cache_name = "corpus_unique_docids.bin" if had_duplicate_docids else "corpus.bin"
         doc_embeddings = model.batch_encode_with_cache(
             text_list=[item.text for item in corpus_docs],
             prefix=self.doc_prefix,
