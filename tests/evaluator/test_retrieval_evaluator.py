@@ -10,6 +10,7 @@ from jmteb.evaluators.retrieval.data import (
     JsonlRetrievalDocDataset,
     JsonlRetrievalQueryDataset,
 )
+from jmteb.evaluators.retrieval.evaluator import ndcg_at_k
 
 EXPECTED_OUTPUT_DICT_KEYS = {"val_scores", "test_scores", "optimal_distance_metric"}
 EXPECTED_DIST_FUNC_NAMES = {"cosine_similarity", "euclidean_distance", "dot_score"}
@@ -169,3 +170,7 @@ def test_jsonl_retrieval_datasets_equal():
     assert corpus_1 == corpus_2
     corpus_2.text_key = "TEXT"
     assert corpus_1 != corpus_2
+
+
+def test_ndcg_does_not_count_duplicate_document_ids_twice():
+    assert ndcg_at_k([["doc-1"]], [["doc-1"] * 10], k=10) == 1.0
