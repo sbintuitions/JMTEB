@@ -5,7 +5,9 @@ JMTEB v2.0 evaluator using MTEB framework.
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import mteb
 from loguru import logger
@@ -13,8 +15,16 @@ from mteb import AbsTask
 from mteb.cache import ResultCache
 
 from jmteb.v2.adapters import JMTEBModel
-from jmteb.v2.tasks import get_task_category
-from jmteb.v2.utils import load_summary, save_summary
+from jmteb.v2.utils import _get_task_key, load_summary, save_summary
+
+if TYPE_CHECKING:
+    from mteb.results import ModelResult, TaskResult
+
+# Split used for the summary score when a task is evaluated on several splits (default: "test")
+SUMMARY_SPLITS = {
+    "JSTS": "validation",
+    "MultiLongDocRetrieval": "dev",
+}
 
 
 class JMTEBV2Evaluator:
@@ -45,11 +55,13 @@ class JMTEBV2Evaluator:
     def __init__(
         self,
         model: JMTEBModel,
-        tasks: list[AbsTask] | AbsTask,
+        tasks: Iterable[AbsTask] | AbsTask,
         save_path: str | Path | None = None,
         batch_size: int = 32,
         task_batch_sizes: dict[str, int] | None = None,
         cache_path: str | Path | None = None,
+        overwrite_cache: bool = False,
+        generate_summary: bool = True,
         **encode_kwargs,
     ):
         """
@@ -57,69 +69,64 @@ class JMTEBV2Evaluator:
 
         Args:
             model: JMTEBModel instance to evaluate
-            tasks: Single task or list of tasks to evaluate
+            tasks: Single task or iterable of tasks to evaluate (e.g. the result of get_jmteb_tasks())
             save_path: Path to save summary.json (MTEB handles result caching)
             batch_size: Default batch size for encoding
             task_batch_sizes: Per-task batch size overrides
             cache_path: Path for MTEB's result cache
+            overwrite_cache: Re-evaluate tasks even if results exist in the cache
+            generate_summary: Write summary.json to save_path
             **encode_kwargs: Additional encoding keyword arguments
         """
         self.model = model
-        self.tasks = tasks if isinstance(tasks, list) else [tasks]
+        self.tasks = [tasks] if isinstance(tasks, AbsTask) else list(tasks)
         self.save_path = Path(save_path) if save_path else None
         self.batch_size = batch_size
         self.task_batch_sizes = task_batch_sizes or {}
         self.cache_path = cache_path or "./cached_results"
+        self.overwrite_cache = overwrite_cache
+        self.generate_summary = generate_summary
         self.encode_kwargs = encode_kwargs
 
         # Create save directory if needed
         if self.save_path:
             self.save_path.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def _write_summary(self) -> bool:
+        return self.save_path is not None and self.generate_summary
+
     def _get_batch_size(self, task_name: str) -> int:
         """Get batch size for a specific task."""
         return self.task_batch_sizes.get(task_name, self.batch_size)
 
-    def _extract_main_score(self, task_result, task_name: str) -> float | None:
+    def _extract_main_score(self, task_result: TaskResult, task_name: str) -> float | None:
         """Extract main score from MTEB task result."""
-        # Determine the split to use
-        if task_name == "JSTS":
-            split = "validation"
-        elif task_name.startswith("MultiLongDoc"):
-            split = "dev"
-        else:
-            split = "test"
+        split = SUMMARY_SPLITS.get(task_name, "test")
+        if split not in task_result.scores:
+            # e.g. MIRACL tasks are only evaluated on the dev split
+            split = next(iter(task_result.scores), None)
 
-        if split in task_result.scores and len(task_result.scores[split]) > 0:
+        if split is not None and len(task_result.scores[split]) > 0:
             return task_result.scores[split][0].get("main_score")
         return None
 
-    def _update_summary(self, task_result, task_name: str, eval_time: float, summary: dict):
+    def _update_summary(self, task: AbsTask, task_result: TaskResult, eval_time: float, summary: dict):
         """Update summary with task result."""
-        task_category = get_task_category(task_name)
-        if not task_category or task_category == "Unknown":
-            return
-
+        task_name = task.metadata.name
         main_score = self._extract_main_score(task_result, task_name)
         if main_score is None:
+            logger.warning(f"No main score found for {task_name}; skipped in summary")
             return
 
-        # Get task key for summary
-        from jmteb.v2.utils import _get_task_key
-
-        task_key = _get_task_key(task_name)
-
-        # Update summary
-        if task_category not in summary:
-            summary[task_category] = {}
-
-        summary[task_category][task_key] = {
-            "main_metric": task_result.task.metadata.main_score,
+        task_category = task.metadata.type
+        summary.setdefault(task_category, {})[_get_task_key(task_name)] = {
+            "main_metric": task.metadata.main_score,
             "main_score": main_score * 100,  # Convert to percentage
             "eval_time (s)": "%.2f" % eval_time,
         }
 
-    def run(self) -> list[mteb.MTEBResults] | None:
+    def run(self) -> list[ModelResult] | None:
         """
         Run evaluation on all tasks.
 
@@ -127,40 +134,25 @@ class JMTEBV2Evaluator:
             List of MTEB results objects (one per task), or None if no results
         """
         logger.info(f"Starting JMTEB v2.0 evaluation on {len(self.tasks)} tasks")
-        # Get task names - handle both AbsTask and direct metadata objects
-        task_names = []
-        for task in self.tasks:
-            if hasattr(task, "metadata"):
-                task_names.append(task.metadata.name)
-            elif hasattr(task, "name"):
-                task_names.append(task.name)
-            else:
-                task_names.append(str(task))
-        logger.info(f"Tasks: {task_names}")
+        logger.info(f"Tasks: {[task.metadata.name for task in self.tasks]}")
 
-        if self.save_path:
+        if self._write_summary:
             logger.info(f"Summary will be saved to: {self.save_path}/summary.json")
 
         # Load existing summary
         summary = {}
-        if self.save_path:
+        if self._write_summary:
             summary = load_summary(str(self.save_path))
             if summary:
                 logger.info(f"Loaded existing summary from {self.save_path}/summary.json")
 
-        # Prepare encode_kwargs with batch sizes
         all_results = []
         results_summary = []
+        overwrite_strategy = "always" if self.overwrite_cache else "only-missing"
 
         # Evaluate each task
         for idx, task in enumerate(self.tasks, 1):
-            # Get task name safely
-            if hasattr(task, "metadata"):
-                task_name = task.metadata.name
-            elif hasattr(task, "name"):
-                task_name = task.name
-            else:
-                task_name = str(task)
+            task_name = task.metadata.name
             batch_size = self._get_batch_size(task_name)
 
             logger.info(f"\n[{idx}/{len(self.tasks)}] Task: {task_name} (batch_size={batch_size})")
@@ -179,6 +171,7 @@ class JMTEBV2Evaluator:
                 tasks=task,
                 encode_kwargs=encode_kwargs,
                 cache=ResultCache(cache_path=self.cache_path),
+                overwrite_strategy=overwrite_strategy,
             )
 
             elapsed_time = time.time() - start_time
@@ -188,16 +181,15 @@ class JMTEBV2Evaluator:
             results_summary.append((task_name, "✓ Success"))
 
             # Update summary
-            if self.save_path:
-                task_result = results.task_results[0]
-                self._update_summary(task_result, task_name, elapsed_time, summary)
+            if self._write_summary:
+                self._update_summary(task, results.task_results[0], elapsed_time, summary)
                 logger.info(f"Summary updated for {task_name}")
                 # Save after each task
                 save_summary(summary, str(self.save_path))
                 logger.info(f"Summary saved to: {self.save_path}/summary.json")
 
         # Save final summary
-        if self.save_path:
+        if self._write_summary:
             if summary:
                 save_summary(summary, str(self.save_path))
                 logger.info(f"Final summary saved to: {self.save_path}/summary.json")
@@ -223,9 +215,9 @@ class JMTEBV2Evaluator:
         logger.info(f"Successful: {successful}")
         logger.info(f"Failed: {failed}")
 
-        if self.save_path:
+        if self._write_summary:
             logger.info(f"\nSummary saved to: {self.save_path}/summary.json")
-            logger.info(f"MTEB cache: {self.cache_path}")
+        logger.info(f"MTEB cache: {self.cache_path}")
 
         logger.info("=" * 80)
 

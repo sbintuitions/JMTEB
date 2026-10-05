@@ -17,7 +17,7 @@ python -m jmteb.v2 \
 # Evaluate with prompts (e.g., for E5 models)
 python -m jmteb.v2 \
   --model_name intfloat/multilingual-e5-base \
-  --prompt_profile prompts/e5.yaml \
+  --prompt_profile src/jmteb/configs/prompts/e5.yaml \
   --save_path results_v2 \
   --batch_size 64
 
