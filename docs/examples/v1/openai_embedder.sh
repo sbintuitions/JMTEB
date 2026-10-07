@@ -1,6 +1,7 @@
 model=$1
 
-export OPENAI_API_KEY=<your_openai_api_key>
+# Replace the placeholder with your OpenAI API key, or export OPENAI_API_KEY before running this script
+export OPENAI_API_KEY=${OPENAI_API_KEY:-"<your_openai_api_key>"}
 
 echo "Running OpenAI model: $model"
 
