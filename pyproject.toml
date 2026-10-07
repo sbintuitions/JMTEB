@@ -18,7 +18,7 @@ version = "2.0.0"
 [tool.poetry.dependencies]
 python = ">=3.10,<3.15"
 # Core dependencies (v2)
-mteb = ">=2.4.2"
+mteb = ">=2.22.4"
 sentence-transformers = ">=5.1.1"
 torch = ">=2.6.0"
 numpy = ">=1.26,<3.0.0"

@@ -321,7 +321,8 @@ Real-time progress updates during evaluation:
 
 ### Custom Model Implementation
 
-Implement your own model by following the encode interface:
+Implement your own model by following the encode interface. `JMTEBModel` takes care of MTEB's
+encoder interface: it passes plain lists of texts to `encode` and prepends prompts (if any) to the texts.
 
 ```python
 import numpy as np
@@ -334,7 +335,8 @@ class CustomModel:
         return np.array(embeddings)
 
 # Wrap for JMTEB v2
-model = JMTEBModel(sentence_transformer=CustomModel())
+# model_name is used by MTEB to cache results, so give each model a distinct name
+model = JMTEBModel(sentence_transformer=CustomModel(), model_name="my-org/my-custom-model")
 ```
 
 ### Dataset-Specific Evaluation
@@ -391,27 +393,36 @@ python -m jmteb.v2 \
 ## Output Structure
 
 ```
-results_v2/
-└── model_name/
-    ├── JSTS.json                    # Individual dataset results
-    ├── JSICK.json
-    ├── JaqketRetrieval.json
-    ├── ...
-    └── summary.json                 # Aggregated summary
+results_v2/                          # save_path
+└── summary.json                     # Aggregated summary
+
+cached_results/                      # cache_path (MTEB result cache)
+└── results/
+    └── cl-nagoya__ruri-v3-30m/      # model name
+        └── <model_revision>/
+            ├── JSTS.json            # Individual dataset results
+            ├── JSICK.json
+            ├── JaqketRetrieval.json
+            ├── ...
+            └── model_meta.json
 ```
 
-Each dataset result file contains:
+Each dataset result file is an MTEB result file; scores are stored per split under `scores`:
 
 ```json
 {
-  "test": [
-    {
-      "main_score": 0.8214,
-      "metric1": value1,
-      "metric2": value2,
-      ...
-    }
-  ]
+  "task_name": "JSTS",
+  "scores": {
+    "validation": [
+      {
+        "main_score": 0.8296,
+        "cosine_spearman": 0.8296,
+        "hf_subset": "default",
+        ...
+      }
+    ]
+  },
+  ...
 }
 ```
 
@@ -463,9 +474,9 @@ For v1.x examples, see `docs/examples/v1/`.
 ## Requirements
 
 - Python >= 3.10
-- PyTorch >= 2.0
-- MTEB >= 1.22.0
-- sentence-transformers >= 5.0
+- PyTorch >= 2.6
+- MTEB >= 2.22.4
+- sentence-transformers >= 5.1.1
 - Other dependencies in `pyproject.toml`
 
 ## Citation
