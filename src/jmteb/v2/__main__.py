@@ -6,6 +6,8 @@ This module provides the CLI interface for running JMTEB v2.0 evaluations using 
 
 from __future__ import annotations
 
+import json
+
 import torch
 from jsonargparse import ArgumentParser
 from loguru import logger
@@ -49,21 +51,24 @@ def get_args():
     # Task selection
     parser.add_argument(
         "--include",
-        type=list[str],
+        type=str,
+        nargs="+",
         default=None,
         help="List of task names to include in evaluation",
     )
     parser.add_argument(
         "--exclude",
-        type=list[str],
+        type=str,
+        nargs="+",
         default=None,
         help="List of task names to exclude from evaluation",
     )
     parser.add_argument(
         "--task_types",
-        type=list[str],
+        type=str,
+        nargs="+",
         default=None,
-        help="List of task types to evaluate (e.g., ['Retrieval', 'Classification'])",
+        help="List of task types to evaluate (e.g., Retrieval Classification)",
     )
 
     # Configuration files
@@ -106,7 +111,17 @@ def get_args():
         help="Path for caching intermediate results",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    for name in ("include", "exclude", "task_types"):
+        setattr(args, name, _parse_list_arg(getattr(args, name)))
+    return args
+
+
+def _parse_list_arg(values: list[str] | None) -> list[str] | None:
+    """Accept both `--include JSTS JSICK` and `--include '["JSTS", "JSICK"]'`."""
+    if values and len(values) == 1 and values[0].lstrip().startswith("["):
+        return json.loads(values[0])
+    return values
 
 
 def main():

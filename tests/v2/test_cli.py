@@ -62,6 +62,17 @@ class TestCLIArgumentParsing:
             args = cli_module.get_args()
             assert args.include == ["JSTS", "JSICK"]
 
+    def test_include_argument_space_separated(self):
+        """Test include argument given as space-separated task names."""
+        with patch.object(
+            sys,
+            "argv",
+            ["prog", "--model_name", "model", "--include", "JSTS", "JSICK", "--task_types", "STS"],
+        ):
+            args = cli_module.get_args()
+            assert args.include == ["JSTS", "JSICK"]
+            assert args.task_types == ["STS"]
+
     def test_exclude_argument(self):
         """Test exclude argument for task filtering."""
         with patch.object(

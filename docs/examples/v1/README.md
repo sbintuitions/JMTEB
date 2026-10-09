@@ -12,7 +12,7 @@ For all-task evaluation with a model that can be loaded with [`SentenceTransform
 
 #### [transformers_embedder_multigpu.sh](docs/examples/transformers_embedder_multigpu.sh)
 
-For all-task evaluation with a model that can be loaded with `AutoModel` in Hugging Face Transformers (even your DIY model as long as it is registered to `AutoModel`, as `trust_remote_code` is set as `True`) with 8 GPUs in a node, and `bf16` enabled. Note that to enable parallelism, `torchrun` is needed. The corresponding class in `JMTEB` is [`TransformersEmbedder`](src/jmteb/embedders/transformers_embedder.py).
+For all-task evaluation with a model that can be loaded with `AutoModel` in Hugging Face Transformers (even your DIY model as long as it is registered to `AutoModel`, as `trust_remote_code` is set as `True`) with 8 GPUs in a node, and `bf16` enabled. Note that to enable parallelism, `torchrun` is needed. Set the environment variable `GPUS_PER_NODE` to change the number of GPUs (default: 8). The corresponding class in `JMTEB` is [`TransformersEmbedder`](src/jmteb/embedders/transformers_embedder.py).
 
 #### [openai_embedder.sh](docs/examples/openai_embedder.sh)
 
