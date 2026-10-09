@@ -1,5 +1,6 @@
-# Use CUDA 12.1 for better compatibility with PyTorch 2.6+
-FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04 AS base
+# PyTorch wheels bundle their own CUDA and cuDNN libraries (CUDA 12.8 for torch 2.9),
+# so only the minimal CUDA base image matching that version is needed
+FROM nvidia/cuda:12.8.1-base-ubuntu22.04 AS base
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -24,20 +25,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Build stage: export dependencies
-FROM base AS builder
-
-WORKDIR /build
-
-# Install poetry
-RUN pip install --no-cache-dir poetry==1.8.2
-
-# Copy only dependency files first for better layer caching
-COPY pyproject.toml poetry.lock* ./
-
-# Export dependencies to requirements.txt
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --only main
-
 # Runtime stage: install application
 FROM base AS runtime
 
@@ -49,7 +36,7 @@ COPY README.md pyproject.toml poetry.lock* ./
 
 # Install poetry temporarily to handle the installation
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir poetry==1.8.2 \
+    && pip install --no-cache-dir poetry==2.5.1 \
     && poetry config virtualenvs.create false \
     && poetry install --only main --no-interaction --no-ansi \
     && pip uninstall -y poetry
